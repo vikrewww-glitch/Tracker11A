@@ -21,8 +21,9 @@ Everything runs locally. The video never leaves the device, and there is no sign
 3. **Track**
    - Manual: tap the object and the video advances to the next frame.
    - Automatic: tap the object once and template matching follows it.
-     - Color-based and background-aware.
-     - Searches coarse-to-fine and predicts the next position from a fitted parabola.
+     - Color-based and background-aware: learns the object's hue against the whole frame (CamShift-style) and refines each point to the centre of that colour blob, so rotation and seams don't drag it.
+     - Ignores look-alikes that stand still: frame differencing, compensated for exposure changes.
+     - Searches coarse-to-fine and predicts the next position from a fitted parabola. After a bounce it starts a new parabola.
      - If the object is briefly hidden or blurred, it skips up to 4 frames and picks the object up again.
      - **End Here** finishes the range when the motion is over.
 4. **Results**

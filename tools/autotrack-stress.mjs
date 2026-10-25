@@ -91,8 +91,9 @@ console.log(`Остановок: ${stops}; точек ${res.n} из ${f1 - f0 + 
 if (process.env.LOG) {
   const log = await page.evaluate(() => window.__trackLog);
   for (const e of log) {
+    if (e.init) continue;
     const tr = truth.frames[e.f];
-    console.log(`  f${e.f} score=${e.score} fx=${e.fx} R=${e.R} known=${e.known} miss=${e.miss} err=${e.x == null ? '-' : Math.hypot(e.x - tr.x, e.y - tr.y).toFixed(1)} predErr=${Math.hypot(e.px - tr.x, e.py - tr.y).toFixed(1)}`);
+    console.log(`  f${e.f} ${e.how || "-"} col=${e.col} mo=${e.mo} score=${e.score} fx=${e.fx} R=${e.R} known=${e.known} miss=${e.miss} err=${e.x == null ? '-' : Math.hypot(e.x - tr.x, e.y - tr.y).toFixed(1)} predErr=${Math.hypot(e.px - tr.x, e.py - tr.y).toFixed(1)}`);
   }
 }
 await browser.close();

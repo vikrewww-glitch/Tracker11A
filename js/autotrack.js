@@ -2,7 +2,8 @@
 // с круглой маской, двухуровневым поиском (грубо на уменьшенном кадре, точно на полном)
 // и штрафом за удаление от прогноза траектории.
 
-const PROC_MAX = 640; // максимальный размер стороны кадра для обработки
+const PROC_MAX = 640;  // размер стороны кадра для обработки по умолчанию
+const MOTION_REF = 10; // разница яркости между кадрами, которую считаем «движением»
 
 function downsample(img) {
   const w = img.w >> 1, h = img.h >> 1;
@@ -17,7 +18,49 @@ function downsample(img) {
     }
     return dst;
   });
-  return { w, h, c };
+  const g = new Float32Array(w * h);
+  for (let i = 0; i < g.length; i++) g[i] = (c[0][i] + c[1][i] + c[2][i]) / 3;
+  return { w, h, c, g };
+}
+
+// Общее изменение яркости кадра (мерцание света, автоэкспозиция телефона):
+// типичная разница между кадрами, которую не считаем движением объекта.
+function globalChange(cur, prev) {
+  const d = [];
+  for (let i = 0; i < cur.g.length; i += 7) d.push(Math.abs(cur.g[i] - prev.g[i]));
+  d.sort((a, b) => a - b);
+  return d[Math.floor(d.length * 0.6)] || 0;
+}
+
+// Карта движения: интегральное изображение |яркость сейчас − яркость на прошлом кадре|
+// за вычетом общего изменения яркости.
+function motionMap(cur, prev) {
+  if (!prev || prev.w !== cur.w || prev.h !== cur.h) return null;
+  const w = cur.w, h = cur.h, I = new Float64Array((w + 1) * (h + 1));
+  const base = 1.5 * globalChange(cur, prev);
+  for (let y = 0; y < h; y++) {
+    let row = 0;
+    for (let x = 0; x < w; x++) {
+      row += Math.max(0, Math.abs(cur.g[y * w + x] - prev.g[y * w + x]) - base);
+      I[(y + 1) * (w + 1) + x + 1] = I[y * (w + 1) + x + 1] + row;
+    }
+  }
+  return { I, w, h };
+}
+
+// Среднее значение карты (интегрального изображения) в квадрате радиуса r вокруг (cx, cy).
+function boxMean(map, cx, cy, r) {
+  const x0 = Math.max(0, Math.round(cx - r)), x1 = Math.min(map.w, Math.round(cx + r) + 1);
+  const y0 = Math.max(0, Math.round(cy - r)), y1 = Math.min(map.h, Math.round(cy + r) + 1);
+  const W = map.w + 1, I = map.I;
+  const area = (x1 - x0) * (y1 - y0);
+  if (area <= 0) return 0;
+  return (I[y1 * W + x1] - I[y0 * W + x1] - I[y1 * W + x0] + I[y0 * W + x0]) / area;
+}
+
+// Доля «движения» вокруг (cx, cy): 0 — фон неподвижен, 1 — заметно меняется.
+function motionAt(mot, cx, cy, r) {
+  return Math.min(1, boxMean(mot, cx, cy, r) / MOTION_REF);
 }
 
 export class FrameGrabber {
@@ -28,9 +71,9 @@ export class FrameGrabber {
   }
 
   // Возвращает { w, h, c: [R, G, B], half, scale } — scale: пикс. обработки на пикс. видео.
-  grab() {
+  grab(scale) {
     const v = this.video;
-    const scale = Math.min(1, PROC_MAX / Math.max(v.videoWidth, v.videoHeight));
+    if (!scale) scale = Math.min(1, PROC_MAX / Math.max(v.videoWidth, v.videoHeight));
     const w = Math.round(v.videoWidth * scale), h = Math.round(v.videoHeight * scale);
     if (this.canvas.width !== w || this.canvas.height !== h) { this.canvas.width = w; this.canvas.height = h; }
     this.ctx.drawImage(v, 0, 0, w, h);
@@ -51,6 +94,144 @@ function sample(ch, w, h, x, y) {
   const fx = Math.max(0, Math.min(1, x - x0)), fy = Math.max(0, Math.min(1, y - y0));
   const i = y0 * w + x0;
   return (ch[i] * (1 - fx) + ch[i + 1] * fx) * (1 - fy) + (ch[i + w] * (1 - fx) + ch[i + w + 1] * fx) * fy;
+}
+
+// ---------- Цветовая модель объекта (как в CamShift) ----------
+// Гистограмма хроматичности (r/s, g/s) объекта против гистограммы всего кадра:
+// оттенки, частые в кадре (стены, плитка, кожа), получают низкую «вероятность объекта».
+// Хроматичность не зависит от яркости, поэтому тень и солнце не мешают.
+const CB = 64;
+
+function chromaBin(r, g, b) {
+  const s = r + g + b;
+  if (s < 60) return -1;
+  return Math.min(CB - 1, (r / s * CB) | 0) * CB + Math.min(CB - 1, (g / s * CB) | 0);
+}
+
+function smoothHist(h) {
+  const out = new Float32Array(h.length);
+  let sum = 0;
+  for (let i = 0; i < CB; i++) {
+    for (let j = 0; j < CB; j++) {
+      let v = 0;
+      for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) {
+        const a = i + di, b = j + dj;
+        if (a >= 0 && a < CB && b >= 0 && b < CB) v += h[a * CB + b] * (di || dj ? 0.25 : 1);
+      }
+      out[i * CB + j] = v;
+      sum += v;
+    }
+  }
+  if (sum > 0) for (let i = 0; i < out.length; i++) out[i] /= sum;
+  return out;
+}
+
+export class ColorModel {
+  // T — шаблон (круг вокруг точки старта).
+  constructor(img, cx, cy, T) {
+    const ho = new Float32Array(CB * CB), hf = new Float32Array(CB * CB);
+    const [R, G, B] = img.c;
+    let no = 0;
+    const objBins = [];
+    // Цвет объекта берём в основном из середины рамки (вес убывает к краям):
+    // под пальцем почти всегда сам объект, а у краёв — то, что рядом (руки, фон).
+    const sig2 = (0.5 * T.half) ** 2;
+    for (let k = 0; k < T.m; k++) {
+      const x = Math.round(cx + T.dx[k]), y = Math.round(cy + T.dy[k]);
+      if (x < 0 || y < 0 || x >= img.w || y >= img.h) continue;
+      const i = y * img.w + x, bin = chromaBin(R[i], G[i], B[i]);
+      if (bin < 0) continue;
+      const g = Math.exp(-(T.dx[k] ** 2 + T.dy[k] ** 2) / sig2);
+      ho[bin] += g;
+      if (g > 0.3) { no++; objBins.push(bin); }
+    }
+    const frameBins = [];
+    for (let y = 0; y < img.h; y += 2) {
+      for (let x = 0; x < img.w; x += 2) {
+        const i = y * img.w + x, bin = chromaBin(R[i], G[i], B[i]);
+        if (bin >= 0) { hf[bin]++; if ((x + y) % 8 === 0) frameBins.push(bin); }
+      }
+    }
+    const o = smoothHist(ho), f = smoothHist(hf);
+    this.lut = new Float32Array(CB * CB);
+    for (let i = 0; i < this.lut.length; i++) this.lut[i] = o[i] / (o[i] + f[i] + 1e-6);
+    // Радиус «цветового пятна» объекта и насколько его цвет вообще отличается от кадра.
+    this.r = Math.max(2, Math.sqrt(no / Math.PI));
+    const mean = bins => bins.reduce((a, b) => a + this.lut[b], 0) / Math.max(1, bins.length);
+    this.objP = mean(objBins);
+    this.frameP = mean(frameBins);
+    this.no = no;
+    this.useful = no >= 12 && this.objP - this.frameP > 0.35;
+  }
+
+  // Радиус объекта: площадь пикселей «цвета объекта» внутри круга радиуса R.
+  objectRadius(img, cx, cy, R) {
+    let cnt = 0;
+    for (let y = Math.max(0, Math.floor(cy - R)); y <= Math.min(img.h - 1, Math.ceil(cy + R)); y++) {
+      for (let x = Math.max(0, Math.floor(cx - R)); x <= Math.min(img.w - 1, Math.ceil(cx + R)); x++) {
+        if ((x - cx) ** 2 + (y - cy) ** 2 <= R * R && this.p(img, y * img.w + x) > 0.5) cnt++;
+      }
+    }
+    return cnt >= 12 ? Math.sqrt(cnt / Math.PI) : 0;
+  }
+
+  p(img, i) {
+    const bin = chromaBin(img.c[0][i], img.c[1][i], img.c[2][i]);
+    return bin < 0 ? 0 : this.lut[bin];
+  }
+
+  // Интегральное изображение вероятности объекта (для быстрой оценки кандидатов).
+  // prev — прошлый кадр: если объект движется, неподвижные пиксели похожего цвета (освещённая
+  // брусчатка, кожа, одежда) весят меньше.
+  map(img, prev = null) {
+    const w = img.w, h = img.h, I = new Float64Array((w + 1) * (h + 1));
+    const moving = prev && prev.w === w && prev.h === h;
+    const base = moving ? 1.5 * globalChange(img, prev) : 0;
+    for (let y = 0; y < h; y++) {
+      let row = 0;
+      for (let x = 0; x < w; x++) {
+        const i = y * w + x;
+        let p = this.p(img, i);
+        if (moving && p > 0) p *= Math.min(1, 0.2 + Math.max(0, Math.abs(img.g[i] - prev.g[i]) - base) / 12);
+        row += p;
+        I[(y + 1) * (w + 1) + x + 1] = I[y * (w + 1) + x + 1] + row;
+      }
+    }
+    return { I, w, h };
+  }
+
+  // Mean-shift: сдвигаем круг к центру масс пикселей цвета объекта. Устойчиво к вращению и швам.
+  // prev — прошлый кадр: если объект движется, неподвижные пиксели того же цвета весят меньше.
+  refine(img, x, y, prev = null) {
+    const moving = prev && prev.w === img.w && prev.h === img.h;
+    const r = this.r * 1.25, r2 = r * r, area = Math.PI * r2;
+    let support = 0;
+    for (let it = 0; it < 8; it++) {
+      let sx = 0, sy = 0, sp = 0, raw = 0;
+      const x0 = Math.max(0, Math.floor(x - r)), x1 = Math.min(img.w - 1, Math.ceil(x + r));
+      const y0 = Math.max(0, Math.floor(y - r)), y1 = Math.min(img.h - 1, Math.ceil(y + r));
+      for (let yy = y0; yy <= y1; yy++) {
+        for (let xx = x0; xx <= x1; xx++) {
+          if ((xx - x) ** 2 + (yy - y) ** 2 > r2) continue;
+          const i = yy * img.w + xx;
+          let p = this.p(img, i);
+          if (p < 0.2) continue;
+          raw += p;
+          if (moving) {
+            const diff = Math.abs(img.c[0][i] + img.c[1][i] + img.c[2][i] - prev.c[0][i] - prev.c[1][i] - prev.c[2][i]) / 3;
+            p *= Math.min(1, 0.3 + diff / 15);
+          }
+          sx += p * xx; sy += p * yy; sp += p;
+        }
+      }
+      support = raw / area;
+      if (sp < 1e-3) return null;
+      const nx = sx / sp, ny = sy / sp, shift = Math.hypot(nx - x, ny - y);
+      x = nx; y = ny;
+      if (shift < 0.05) break;
+    }
+    return { x, y, support };
+  }
 }
 
 // Шаблон: точки внутри круга диаметром n, по три цветовых канала.
@@ -170,7 +351,7 @@ class Template {
 
 // Поиск шаблона T в изображении около (px, py) в радиусе R.
 // eff = ncc − pen·(d/R)² — предпочитаем совпадения ближе к прогнозу.
-function search(img, T, px, py, R, pen, ex = null) {
+function search(img, T, px, py, R, pen, ex = null, mot = null, col = null) {
   const W = img.w, H = img.h, h = T.half, m = T.m;
   const x0 = Math.max(h, Math.ceil(px - R)), x1 = Math.min(W - 1 - h, Math.floor(px + R));
   const y0 = Math.max(h, Math.ceil(py - R)), y1 = Math.min(H - 1 - h, Math.floor(py + R));
@@ -199,7 +380,11 @@ function search(img, T, px, py, R, pen, ex = null) {
       const sc = varI > 1e-6 ? x / (T.norm * Math.sqrt(varI)) : 0;
       ncc[j * gw + i] = sc;
       const d2 = (cx - px) ** 2 + (cy - py) ** 2;
-      const eff = sc - pen * d2 / R2;
+      let eff = sc - pen * d2 / R2;
+      // Неподвижный фон (ноги, перила, стены) получает штраф, если объект должен двигаться.
+      if (mot) eff -= mot.gamma * (1 - motionAt(mot, cx, cy, mot.r));
+      // Цвет объекта: кандидаты, где пикселей «цвета объекта» больше, получают бонус.
+      if (col) eff += col.lambda * boxMean(col, cx, cy, col.r);
       if (eff > best) { best = eff; bi = i; bj = j; }
     }
   }
@@ -216,7 +401,8 @@ function search(img, T, px, py, R, pen, ex = null) {
   }
   const edge = (bi === 0 && x0 > h) || (bi === gw - 1 && x1 < W - 1 - h) ||
                (bj === 0 && y0 > h) || (bj === gh - 1 && y1 < H - 1 - h);
-  return { x: x0 + bi + dx, y: y0 + bj + dy, score: at(bi, bj), eff: best, edge };
+  const motion = mot ? motionAt(mot, x0 + bi, y0 + bj, mot.r) : 1;
+  return { x: x0 + bi + dx, y: y0 + bj + dy, score: at(bi, bj), eff: best, edge, motion };
 }
 
 // Координаты: полный кадр ↔ уменьшенный вдвое (центр пикселя 2i+0.5).
@@ -234,6 +420,21 @@ export class TemplateTracker {
       if (!c || Math.hypot(c.x, c.y) < 1 || Math.hypot(c.x, c.y) > 0.35 * this.n) break;
       cx += c.x;
       cy += c.y;
+    }
+    // Цветовая модель; если цвет объекта отличается от кадра — центрируем точку по цветовому пятну
+    // и подгоняем размер шаблона под сам объект (рамка пользователя может быть с запасом).
+    this.color = new ColorModel(img, cx, cy, this.fixed);
+    if (this.color.useful) {
+      const r = this.color.refine(img, cx, cy);
+      if (r && r.support > 0.3 && Math.hypot(r.x - cx, r.y - cy) < 0.35 * this.n) {
+        cx = r.x;
+        cy = r.y;
+      }
+      const ro = this.color.objectRadius(img, cx, cy, this.n / 2);
+      const n = Math.max(9, Math.round(2.3 * ro) | 1);
+      if (ro && n < 0.85 * this.n) this.n = n;
+      this._build(img, cx, cy);
+      this.color.r = Math.max(2, ro || this.color.r);
     }
     return { x: cx, y: cy };
   }
@@ -261,16 +462,23 @@ export class TemplateTracker {
 
   // Поиск около прогноза (px, py) в радиусе R. Возвращает { x, y, score } или null.
   // ex = { x, y, r } — исключить круг (например, место старта, где остался фон).
-  match(img, px, py, R, pen = 0.25, ex = null) {
+  // prev — предыдущий кадр (для учёта движения), gamma — сила штрафа за неподвижность.
+  match(img, px, py, R, pen = 0.25, ex = null, prev = null, gamma = 0) {
     const exHalf = ex && { x: toHalf(ex.x), y: toHalf(ex.y), r: ex.r / 2 };
+    const mm = gamma > 0 && prev ? motionMap(img.half, prev.half) : null;
+    const mot = mm && { ...mm, r: Math.max(2, this.fixedHalf.half), gamma };
+    const useColor = this.color && this.color.useful;
+    const col = useColor && R > 6 ? { ...this.color.map(img.half, gamma > 0 && prev ? prev.half : null), r: Math.max(1, 0.6 * this.color.r / 2), lambda: 0.4 } : null;
+    let motion = 1;
     let cx = px, cy = py;
     let fineR = R;
     if (R > 6) {
       // Грубый поиск на уменьшенном кадре по обоим шаблонам.
-      const a = search(img.half, this.adaptHalf, toHalf(px), toHalf(py), R / 2, pen, exHalf);
-      const b = search(img.half, this.fixedHalf, toHalf(px), toHalf(py), R / 2, pen, exHalf);
+      const a = search(img.half, this.adaptHalf, toHalf(px), toHalf(py), R / 2, pen, exHalf, mot, col);
+      const b = search(img.half, this.fixedHalf, toHalf(px), toHalf(py), R / 2, pen, exHalf, mot, col);
       const c = !a ? b : !b ? a : (a.eff >= b.eff ? a : b);
       if (!c) return null;
+      motion = c.motion;
       cx = fromHalf(c.x);
       cy = fromHalf(c.y);
       fineR = 3;
@@ -291,6 +499,22 @@ export class TemplateTracker {
       // fixedScore — насколько место похоже на исходный объект: защита от «дрейфа» шаблона на фон.
       best.fixedScore = f ? f.score : 0;
       best.score = Math.max(a ? a.score : 0, best.fixedScore);
+      best.motion = motion;
+      best.color = 0;
+      if (useColor) {
+        // Итоговая точка — центр цветового пятна объекта (если оно уверенно найдено рядом).
+        const r = this.color.refine(img, best.x, best.y, gamma > 0 ? prev : null);
+        const shift = r ? Math.hypot(r.x - best.x, r.y - best.y) : Infinity;
+        if (r && r.support > 0.3 && shift < 0.5 * this.n) {
+          best.color = r.support;
+          // Уверенное совпадение узора точнее центра цветового пятна (субпиксельный пик) — оставляем его;
+          // если узор совпал плохо (вращение, швы), берём центр цвета.
+          if (!(best.score >= 0.85 && shift < 0.2 * this.n)) {
+            best.x = r.x;
+            best.y = r.y;
+          }
+        }
+      }
     }
     return best;
   }
