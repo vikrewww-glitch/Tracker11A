@@ -1,6 +1,6 @@
 // Шаг 3: ручной и автоматический трекинг объекта.
-import { drawAxes } from './calibrate.js';
-import { FrameGrabber, TemplateTracker } from './autotrack.js';
+import { drawAxes } from './calibrate.js?v=20261025095113';
+import { FrameGrabber, TemplateTracker } from './autotrack.js?v=20261025095113';
 
 const LOST_SCORE = 0.6;
 

@@ -1,6 +1,6 @@
 // Шаг 2: FPS, начальный/конечный кадр, масштаб и система координат.
-import { hitHandles } from './viewer.js';
-import { pixelsPerMeter } from './physics.js';
+import { hitHandles } from './viewer.js?v=20261025095113';
+import { pixelsPerMeter } from './physics.js?v=20261025095113';
 
 const AXIS_PX = 90; // длина стрелки оси на экране
 const BLUE = '#0a84ff';

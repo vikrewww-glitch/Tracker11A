@@ -28,6 +28,8 @@ Velocity and acceleration use central differences. Smoothing is a local quadrati
 ## Deploy
 It is a static site with no build step. Push it to GitHub and enable **Settings → Pages → Deploy from a branch → `main` / root**.
 
+Before each commit, run `python3 tools/bump_version.py`. It stamps a version onto the CSS and JS URLs, so browsers never mix a new page with old cached files.
+
 To run it locally, use any static server (ES modules don't load from `file://`):
 
 ```sh

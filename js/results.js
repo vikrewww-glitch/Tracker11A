@@ -1,7 +1,7 @@
 // Шаг 4: графики, таблица и экспорт.
-import { computeSeries } from './physics.js';
-import { drawChart, nearestPoint } from './chart.js';
-import { COLUMNS, fmt, tableText, copyText, saveBlob, canvasToBlobSync } from './export.js';
+import { computeSeries } from './physics.js?v=20261025095113';
+import { drawChart, nearestPoint } from './chart.js?v=20261025095113';
+import { COLUMNS, fmt, tableText, copyText, saveBlob, canvasToBlobSync } from './export.js?v=20261025095113';
 
 export const QUANTITIES = [
   { key: 'x', html: 'x', name: 'x', unit: 'm', dec: 3 },

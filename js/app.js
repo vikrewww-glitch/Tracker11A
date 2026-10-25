@@ -1,11 +1,11 @@
 // Мастер шагов 1 → 4 и общее состояние приложения.
-import { VideoSource } from './video.js';
-import { Viewer } from './viewer.js';
-import { initCalibration, defaultCalibration } from './calibrate.js';
-import { initTracking } from './track.js';
-import { initResults } from './results.js';
-import { toWorld } from './physics.js';
-import { tableText } from './export.js';
+import { VideoSource } from './video.js?v=20261025095113';
+import { Viewer } from './viewer.js?v=20261025095113';
+import { initCalibration, defaultCalibration } from './calibrate.js?v=20261025095113';
+import { initTracking } from './track.js?v=20261025095113';
+import { initResults } from './results.js?v=20261025095113';
+import { toWorld } from './physics.js?v=20261025095113';
+import { tableText } from './export.js?v=20261025095113';
 
 const $ = s => document.querySelector(s);
 
