@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=20261025095113">
+  <link rel="stylesheet" href="css/style.css?v=20261025101616">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -36,11 +36,12 @@
     <div class="topbar-inner">
       <div class="brand">Tracker</div>
       <nav class="steps" id="steps">
-        <button class="stepbtn" data-step="1">Video</button>
-        <button class="stepbtn" data-step="2">Calibrate</button>
-        <button class="stepbtn" data-step="3">Track</button>
-        <button class="stepbtn" data-step="4">Results</button>
+        <button class="stepbtn" data-step="1" data-i18n="step.video">Video</button>
+        <button class="stepbtn" data-step="2" data-i18n="step.calibrate">Calibrate</button>
+        <button class="stepbtn" data-step="3" data-i18n="step.track">Track</button>
+        <button class="stepbtn" data-step="4" data-i18n="step.results">Results</button>
       </nav>
+      <button class="langbtn" id="langBtn" data-i18n-aria="lang.switch" aria-label="Language"><span data-l="en">EN</span><span data-l="pt">PT</span></button>
     </div>
     <div class="progress"><span id="progress"></span></div>
   </header>
@@ -49,168 +50,170 @@
     <!-- Step 1 -->
     <section class="step" id="step1">
       <div class="hero">
-        <p class="eyebrow">Physics motion analysis</p>
-        <h1>See motion<br>in numbers.</h1>
-        <p class="lead">Track a moving object frame by frame. Position, velocity and acceleration are computed on your device — your video never leaves it.</p>
+        <p class="eyebrow" data-i18n="hero.eyebrow">Physics motion analysis</p>
+        <h1 data-i18n-html="hero.title">See motion<br>in numbers.</h1>
+        <p class="lead" data-i18n="hero.lead">Track a moving object frame by frame. Position, velocity and acceleration are computed on your device — your video never leaves it.</p>
       </div>
       <div class="list">
         <label class="row link has-icon">
           <input type="file" accept="video/*" id="fileInput" hidden>
           <span class="badge blue"><svg class="i"><use href="#i-photo"/></svg></span>
-          <span class="row-text"><b>Choose Video</b><small>From your library or files</small></span>
+          <span class="row-text"><b data-i18n="src.choose">Choose Video</b><small data-i18n="src.choose.sub">From your library or files</small></span>
           <svg class="i chev"><use href="#i-chev"/></svg>
         </label>
         <label class="row link has-icon">
           <input type="file" accept="video/*" capture="environment" id="cameraInput" hidden>
           <span class="badge orange"><svg class="i"><use href="#i-video"/></svg></span>
-          <span class="row-text"><b>Record Video</b><small>Use the camera</small></span>
+          <span class="row-text"><b data-i18n="src.record">Record Video</b><small data-i18n="src.record.sub">Use the camera</small></span>
           <svg class="i chev"><use href="#i-chev"/></svg>
         </label>
         <button class="row link has-icon" id="demoBtn">
           <span class="badge green"><svg class="i"><use href="#i-play"/></svg></span>
-          <span class="row-text"><b>Try a Sample</b><small>A ball in projectile motion</small></span>
+          <span class="row-text"><b data-i18n="src.sample">Try a Sample</b><small data-i18n="src.sample.sub">A ball in projectile motion</small></span>
           <svg class="i chev"><use href="#i-chev"/></svg>
         </button>
       </div>
       <div class="filecard hidden" id="videoInfo"></div>
-      <h2 class="section-title">For best results</h2>
+      <h2 class="section-title" data-i18n="tips.title">For best results</h2>
       <ul class="tips">
-        <li>Keep the phone still — use a tripod or rest it on something.</li>
-        <li>Point the camera straight at the plane of motion.</li>
-        <li>Include an object of known length, like a meter stick.</li>
-        <li>Use good lighting and a plain, contrasting background.</li>
+        <li class="tip-key" data-i18n-html="tips.trim"></li>
+        <li data-i18n="tips.still"></li>
+        <li data-i18n="tips.straight"></li>
+        <li data-i18n="tips.ruler"></li>
+        <li data-i18n="tips.light"></li>
       </ul>
     </section>
 
     <!-- Step 2 -->
     <section class="step" id="step2">
       <div class="stephead">
-        <h1>Calibrate</h1>
-        <p class="lead">Set the time range, the scale and the coordinate axes.</p>
+        <h1 data-i18n="cal.title">Calibrate</h1>
+        <p class="lead" data-i18n="cal.lead"></p>
       </div>
       <div class="segmented" id="calTabs">
-        <button data-tab="frames" class="on">Frames</button>
-        <button data-tab="scale">Scale</button>
-        <button data-tab="axes">Axes</button>
+        <button data-tab="frames" class="on" data-i18n="cal.frames">Frames</button>
+        <button data-tab="scale" data-i18n="cal.scale">Scale</button>
+        <button data-tab="axes" data-i18n="cal.axes">Axes</button>
       </div>
       <div class="viewer-slot"></div>
       <div class="panel" data-panel="frames">
         <div class="list">
           <div class="row">
-            <label class="row-label" for="fpsInput">Frame rate</label>
+            <label class="row-label" for="fpsInput" data-i18n="cal.fps">Frame rate</label>
             <input type="number" id="fpsInput" inputmode="decimal" min="1" max="1000" step="0.01">
             <span class="unit">fps</span>
           </div>
           <div class="row">
-            <span class="row-label">Start frame <b class="val" id="startVal">0</b></span>
-            <button class="btn tinted small" id="setStart">Set to Current</button>
+            <span class="row-label"><span data-i18n="cal.start">Start frame</span> <b class="val" id="startVal">0</b></span>
+            <button class="btn tinted small" id="setStart" data-i18n="cal.setCurrent">Set to Current</button>
           </div>
           <div class="row">
-            <span class="row-label">End frame <b class="val" id="endVal">0</b></span>
-            <button class="btn tinted small" id="setEnd">Set to Current</button>
+            <span class="row-label"><span data-i18n="cal.end">End frame</span> <b class="val" id="endVal">0</b></span>
+            <button class="btn tinted small" id="setEnd" data-i18n="cal.setCurrent">Set to Current</button>
           </div>
         </div>
-        <p class="footnote"><span id="fpsNote"></span> Scrub to where the motion begins and tap “Set to Current”, then do the same for the end.</p>
+        <p class="footnote"><span id="fpsNote"></span> <span data-i18n="cal.framesNote"></span></p>
       </div>
       <div class="panel hidden" data-panel="scale">
         <div class="list">
           <div class="row">
-            <label class="row-label" for="lengthInput">Reference length</label>
+            <label class="row-label" for="lengthInput" data-i18n="cal.length">Reference length</label>
             <input type="number" id="lengthInput" inputmode="decimal" min="0" step="0.01" value="1">
             <span class="unit">m</span>
           </div>
         </div>
-        <p class="footnote">Drag the two blue handles to the ends of an object of known length. <span id="ppmNote"></span></p>
+        <p class="footnote"><span data-i18n="cal.scaleNote"></span> <span id="ppmNote"></span></p>
       </div>
       <div class="panel hidden" data-panel="axes">
         <div class="list">
           <div class="row">
-            <label class="row-label" for="angleInput">Rotation</label>
-            <button class="btn plain small" data-angle="0">Reset</button>
+            <label class="row-label" for="angleInput" data-i18n="cal.rotation">Rotation</label>
+            <button class="btn plain small" data-angle="0" data-i18n="cal.reset">Reset</button>
             <input type="number" id="angleInput" inputmode="decimal" step="1" value="0">
             <span class="unit">°</span>
           </div>
           <div class="row">
-            <span class="row-label">Y axis</span>
+            <span class="row-label" data-i18n="cal.yAxis">Y axis</span>
             <div class="segmented mini" id="yDir">
-              <button data-ydir="up" class="on">Up</button>
-              <button data-ydir="down">Down</button>
+              <button data-ydir="up" class="on" data-i18n="cal.up">Up</button>
+              <button data-ydir="down" data-i18n="cal.down">Down</button>
             </div>
           </div>
         </div>
-        <p class="footnote">Drag the origin to move the axes. Drag the end of the x arrow to rotate them.</p>
+        <p class="footnote" data-i18n="cal.axesNote"></p>
       </div>
     </section>
 
     <!-- Step 3 -->
     <section class="step" id="step3">
       <div class="stephead">
-        <h1>Track</h1>
-        <p class="lead" id="trackLead">Tap the center of the object. The video advances to the next frame automatically.</p>
+        <h1 data-i18n="track.title">Track</h1>
+        <p class="lead" id="trackLead"></p>
       </div>
       <div class="segmented" id="modeTabs">
-        <button data-mode="manual" class="on">Manual</button>
-        <button data-mode="auto">Automatic</button>
+        <button data-mode="manual" class="on" data-i18n="track.manual">Manual</button>
+        <button data-mode="auto" data-i18n="track.auto">Automatic</button>
       </div>
       <div class="viewer-slot"></div>
       <div class="panel hidden" data-mode-panel="auto">
         <div class="list">
           <div class="row">
-            <label class="row-label" for="boxSize">Box size</label>
+            <label class="row-label" for="boxSize" data-i18n="track.boxSize">Box size</label>
             <input type="range" id="boxSize" min="8" max="200" value="40">
           </div>
         </div>
         <button class="btn primary block" id="autoRun">Start Tracking</button>
         <p class="status" id="autoStatus"></p>
+        <button class="btn tinted block hidden" id="endHere" data-i18n="track.endHere">End Here</button>
       </div>
       <div class="list">
         <div class="row">
-          <label class="row-label" for="stepSelect">Frame step</label>
+          <label class="row-label" for="stepSelect" data-i18n="track.frameStep">Frame step</label>
           <select id="stepSelect">
-            <option value="1">Every frame</option>
-            <option value="2">Every 2nd</option>
-            <option value="3">Every 3rd</option>
-            <option value="5">Every 5th</option>
+            <option value="1" data-i18n="track.every1">Every frame</option>
+            <option value="2" data-i18n="track.every2">Every 2nd</option>
+            <option value="3" data-i18n="track.every3">Every 3rd</option>
+            <option value="5" data-i18n="track.every5">Every 5th</option>
           </select>
         </div>
         <div class="row">
-          <span class="row-label">Points</span>
+          <span class="row-label" data-i18n="track.points">Points</span>
           <b class="val" id="pointCount">0</b>
         </div>
       </div>
       <div class="actions-row">
-        <button class="btn plain small" id="delPoint">Delete Point</button>
-        <button class="btn plain small destructive" id="clearPoints">Clear All</button>
+        <button class="btn plain small" id="delPoint" data-i18n="track.delete">Delete Point</button>
+        <button class="btn plain small destructive" id="clearPoints" data-i18n="track.clear">Clear All</button>
       </div>
     </section>
 
     <!-- Step 4 -->
     <section class="step" id="step4">
       <div class="stephead">
-        <h1>Results</h1>
-        <p class="lead">Velocity and acceleration use central differences.</p>
+        <h1 data-i18n="res.title">Results</h1>
+        <p class="lead" data-i18n="res.lead"></p>
       </div>
       <div class="chips" id="qTabs"></div>
       <div class="card chartcard">
         <canvas id="chart"></canvas>
-        <div class="readout" id="readout">Touch the chart to read a value</div>
+        <div class="readout" id="readout"></div>
       </div>
       <div class="stats">
         <div><span id="statLabel">Mean</span><b id="statMean">—</b></div>
-        <div><span>Min</span><b id="statMin">—</b></div>
-        <div><span>Max</span><b id="statMax">—</b></div>
+        <div><span data-i18n="res.min">Min</span><b id="statMin">—</b></div>
+        <div><span data-i18n="res.max">Max</span><b id="statMax">—</b></div>
       </div>
       <div class="list">
         <div class="row">
-          <span class="row-label">Smoothing</span>
+          <span class="row-label" data-i18n="res.smoothing">Smoothing</span>
           <div class="segmented mini" id="smoothTabs">
-            <button data-smooth="none" class="on">Off</button>
-            <button data-smooth="light">Light</button>
-            <button data-smooth="strong">Strong</button>
+            <button data-smooth="none" class="on" data-i18n="res.off">Off</button>
+            <button data-smooth="light" data-i18n="res.light">Light</button>
+            <button data-smooth="strong" data-i18n="res.strong">Strong</button>
           </div>
         </div>
         <div class="row">
-          <span class="row-label">Decimal</span>
+          <span class="row-label" data-i18n="res.decimal">Decimal</span>
           <div class="segmented mini" id="decSep">
             <button data-dec="dot" class="on">1.5</button>
             <button data-dec="comma">1,5</button>
@@ -220,18 +223,18 @@
       <div class="list">
         <button class="row link has-icon" id="copyBtn">
           <svg class="i accent"><use href="#i-copy"/></svg>
-          <span class="row-text"><b>Copy for Excel</b><small>Paste straight into Excel or Google Sheets</small></span>
+          <span class="row-text"><b data-i18n="res.copy">Copy for Excel</b><small data-i18n="res.copy.sub">Paste straight into Excel or Google Sheets</small></span>
         </button>
         <button class="row link has-icon" id="csvBtn">
           <svg class="i accent"><use href="#i-down"/></svg>
-          <span class="row-text"><b>Download CSV</b></span>
+          <span class="row-text"><b data-i18n="res.csv">Download CSV</b></span>
         </button>
         <button class="row link has-icon" id="pngBtn">
           <svg class="i accent"><use href="#i-image"/></svg>
-          <span class="row-text"><b>Save Chart as Image</b></span>
+          <span class="row-text"><b data-i18n="res.png">Save Chart as Image</b></span>
         </button>
       </div>
-      <h2 class="section-title">Data</h2>
+      <h2 class="section-title" data-i18n="res.data">Data</h2>
       <div class="tablewrap card">
         <table id="table"></table>
       </div>
@@ -240,7 +243,7 @@
 
   <footer class="navbar">
     <div class="navbar-inner">
-      <button class="btn plain" id="backBtn"><svg class="i"><use href="#i-left"/></svg>Back</button>
+      <button class="btn plain" id="backBtn"><svg class="i"><use href="#i-left"/></svg><span data-i18n="nav.back">Back</span></button>
       <button class="btn primary" id="nextBtn">Continue</button>
     </div>
   </footer>
@@ -251,16 +254,16 @@
       <div class="canvaswrap">
         <canvas></canvas>
         <div class="zoombtns">
-          <button data-zoom="out" aria-label="Zoom out"><svg class="i"><use href="#i-minus"/></svg></button>
-          <button data-zoom="fit" aria-label="Fit"><svg class="i"><use href="#i-fit"/></svg></button>
-          <button data-zoom="in" aria-label="Zoom in"><svg class="i"><use href="#i-plus"/></svg></button>
+          <button data-zoom="out" data-i18n-aria="aria.zoomOut" aria-label="Zoom out"><svg class="i"><use href="#i-minus"/></svg></button>
+          <button data-zoom="fit" data-i18n-aria="aria.fit" aria-label="Fit"><svg class="i"><use href="#i-fit"/></svg></button>
+          <button data-zoom="in" data-i18n-aria="aria.zoomIn" aria-label="Zoom in"><svg class="i"><use href="#i-plus"/></svg></button>
         </div>
         <div class="busy hidden"></div>
       </div>
       <div class="framebar">
-        <button class="roundbtn" id="prevFrame" aria-label="Previous frame"><svg class="i"><use href="#i-left"/></svg></button>
-        <input type="range" id="frameSlider" min="0" max="0" value="0" aria-label="Frame">
-        <button class="roundbtn" id="nextFrame" aria-label="Next frame"><svg class="i"><use href="#i-right"/></svg></button>
+        <button class="roundbtn" id="prevFrame" data-i18n-aria="aria.prev" aria-label="Previous frame"><svg class="i"><use href="#i-left"/></svg></button>
+        <input type="range" id="frameSlider" min="0" max="0" value="0" data-i18n-aria="aria.frame" aria-label="Frame">
+        <button class="roundbtn" id="nextFrame" data-i18n-aria="aria.next" aria-label="Next frame"><svg class="i"><use href="#i-right"/></svg></button>
       </div>
       <div class="frameinfo" id="frameInfo"></div>
     </div>
@@ -268,6 +271,6 @@
 
   <video id="video" playsinline muted preload="auto"></video>
   <div class="toast" id="toast"></div>
-  <script type="module" src="js/app.js?v=20261025095113"></script>
+  <script type="module" src="js/app.js?v=20261025101616"></script>
 </body>
 </html>

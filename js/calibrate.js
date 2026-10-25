@@ -1,6 +1,7 @@
 // Шаг 2: FPS, начальный/конечный кадр, масштаб и система координат.
-import { hitHandles } from './viewer.js?v=20261025095113';
-import { pixelsPerMeter } from './physics.js?v=20261025095113';
+import { hitHandles } from './viewer.js?v=20261025101616';
+import { pixelsPerMeter } from './physics.js?v=20261025101616';
+import { t, num } from './i18n.js?v=20261025101616';
 
 const AXIS_PX = 90; // длина стрелки оси на экране
 const BLUE = '#0a84ff';
@@ -100,7 +101,7 @@ function drawScale(ctx, viewer, scale, strong) {
     handleDot(ctx, a, BLUE);
     handleDot(ctx, b, BLUE);
   }
-  const txt = (scale.length > 0 ? String(scale.length) : '?') + ' m';
+  const txt = (scale.length > 0 ? String(scale.length).replace('.', num(1.5, 1)[1]) : '?') + ' m';
   label(ctx, txt, (a.x + b.x) / 2 + nx * 2.4, (a.y + b.y) / 2 + ny * 2.4, BLUE);
   ctx.restore();
 }
@@ -154,7 +155,7 @@ export function initCalibration(app) {
   function updateFields() {
     const { scale, axes } = state.cal;
     const ppm = pixelsPerMeter(scale);
-    ppmNote.textContent = ppm > 0 ? `Scale: ${ppm.toFixed(1)} px per meter.` : '';
+    ppmNote.textContent = ppm > 0 ? t('cal.ppm', { v: num(ppm, 1) }) : '';
     if (document.activeElement !== angleInput) {
       let deg = axes.angle * 180 / Math.PI;
       deg = ((deg % 360) + 540) % 360 - 180;
@@ -165,10 +166,10 @@ export function initCalibration(app) {
     $('#endVal').textContent = state.end;
     if (document.activeElement !== fpsInput) fpsInput.value = Math.round(video.fps * 1000) / 1000;
     const notes = {
-      file: video.variableFps ? 'Frame rate read from the file (variable).' : 'Frame rate read from the file.',
-      estimate: 'Frame rate estimated — please check it.',
-      default: 'Frame rate unknown — please enter it.',
-      manual: 'Frame rate entered manually.',
+      file: t(video.variableFps ? 'fps.fileVar' : 'fps.file'),
+      estimate: t('fps.estimate'),
+      default: t('fps.default'),
+      manual: t('fps.manual'),
     };
     fpsNote.textContent = notes[video.fpsSource] || '';
   }
@@ -184,7 +185,7 @@ export function initCalibration(app) {
 
   fpsInput.addEventListener('change', () => {
     const f = parseFloat(fpsInput.value.replace(',', '.'));
-    if (!(f >= 1 && f <= 1000)) { updateFields(); app.toast('Enter a frame rate between 1 and 1000'); return; }
+    if (!(f >= 1 && f <= 1000)) { updateFields(); app.toast(t('toast.fpsRange')); return; }
     const t0 = video.timeOf(state.start), t1 = video.timeOf(state.end);
     const cur = video.timeOf(Math.max(0, video.current));
     video.setFps(f);
@@ -226,14 +227,14 @@ export function initCalibration(app) {
     state.start = video.current;
     if (state.end < state.start) state.end = video.frameCount - 1;
     updateFields();
-    app.toast(`Start frame set to ${state.start}`);
+    app.toast(t('toast.startSet', { n: state.start }));
     app.changed();
   });
   $('#setEnd').addEventListener('click', () => {
-    if (video.current <= state.start) { app.toast('The end frame must come after the start frame'); return; }
+    if (video.current <= state.start) { app.toast(t('toast.endAfterStart')); return; }
     state.end = video.current;
     updateFields();
-    app.toast(`End frame set to ${state.end}`);
+    app.toast(t('toast.endSet', { n: state.end }));
     app.changed();
   });
 
@@ -251,6 +252,7 @@ export function initCalibration(app) {
     },
     leave() {},
     onFrame() {},
+    relabel: updateFields,
     valid() {
       return pixelsPerMeter(state.cal.scale) > 0;
     },

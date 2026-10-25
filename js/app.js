@@ -1,11 +1,12 @@
 // Мастер шагов 1 → 4 и общее состояние приложения.
-import { VideoSource } from './video.js?v=20261025095113';
-import { Viewer } from './viewer.js?v=20261025095113';
-import { initCalibration, defaultCalibration } from './calibrate.js?v=20261025095113';
-import { initTracking } from './track.js?v=20261025095113';
-import { initResults } from './results.js?v=20261025095113';
-import { toWorld } from './physics.js?v=20261025095113';
-import { tableText } from './export.js?v=20261025095113';
+import { VideoSource } from './video.js?v=20261025101616';
+import { Viewer } from './viewer.js?v=20261025101616';
+import { initCalibration, defaultCalibration } from './calibrate.js?v=20261025101616';
+import { initTracking } from './track.js?v=20261025101616';
+import { initResults } from './results.js?v=20261025101616';
+import { toWorld } from './physics.js?v=20261025101616';
+import { tableText } from './export.js?v=20261025101616';
+import { t, num, applyDom, setLang, getLang, onLang } from './i18n.js?v=20261025101616';
 
 const $ = s => document.querySelector(s);
 
@@ -20,13 +21,14 @@ const state = {
   boxSize: 0,
   smoothing: 'none',
   quantity: 'y',
-  comma: true,
+  comma: false,
 };
 
 const video = new VideoSource($('#video'));
 const viewerEl = $('#viewerTpl').content.firstElementChild.cloneNode(true);
 $('#step2 .viewer-slot').appendChild(viewerEl);
 const viewer = new Viewer(viewerEl.querySelector('.canvaswrap'), video.el);
+applyDom();
 
 let toastTimer = 0;
 let busyTimer = 0;
@@ -35,11 +37,11 @@ let range = [0, 0];
 const app = {
   state, video, viewer,
   toast(msg) {
-    const t = $('#toast');
-    t.textContent = msg;
-    t.classList.add('show');
+    const el = $('#toast');
+    el.textContent = msg;
+    el.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
   },
   goto(n) {
     clearTimeout(busyTimer);
@@ -84,7 +86,7 @@ app.exportText = (sep, comma) => tableText(results.series, sep, comma);
 
 // ---------- Покадровая навигация ----------
 
-function fmtNum(v, d) { return v.toFixed(d); }
+const fmtNum = num;
 
 // Заливка дорожки ползунка до текущего значения.
 function paintRange(el) {
@@ -99,11 +101,11 @@ function updateFrameInfo() {
   if (n < 0) return;
   const info = $('#frameInfo');
   if (state.step === 3) {
-    const t = video.timeOf(n) - video.timeOf(state.start);
-    const has = state.points.has(n) ? ' · <span class="ok">Marked</span>' : '';
-    info.innerHTML = `Frame <b>${n}</b> <span>(${state.start}–${state.end})</span> · t = <b>${fmtNum(t, 3)}</b> s${has}`;
+    const time = video.timeOf(n) - video.timeOf(state.start);
+    const has = state.points.has(n) ? ` · <span class="ok">${t('frame.marked')}</span>` : '';
+    info.innerHTML = t('frame.infoRange', { n, a: state.start, b: state.end, t: fmtNum(time, 3) }) + has;
   } else {
-    info.innerHTML = `Frame <b>${n}</b> of ${video.frameCount - 1} · t = <b>${fmtNum(video.timeOf(n), 3)}</b> s`;
+    info.innerHTML = t('frame.info', { n, max: video.frameCount - 1, t: fmtNum(video.timeOf(n), 3) });
   }
   $('#prevFrame').disabled = n <= range[0];
   $('#nextFrame').disabled = n >= range[1];
@@ -174,15 +176,15 @@ function refreshNav() {
   const next = $('#nextBtn');
   next.classList.toggle('hidden', state.step === 4);
   next.disabled = !canEnter(state.step + 1);
-  next.textContent = state.step === 3 ? 'See Results' : 'Continue';
+  next.textContent = t(state.step === 3 ? 'nav.results' : 'nav.continue');
   $('#progress').style.width = state.step * 25 + '%';
 }
 
 function goStep(n) {
   if (!canEnter(n)) {
-    if (n === 2) app.toast('Choose a video first');
-    if (n === 3) app.toast('Enter the reference length');
-    if (n === 4) app.toast('Mark at least 3 points');
+    if (n === 2) app.toast(t('toast.needVideo'));
+    if (n === 3) app.toast(t('toast.needLength'));
+    if (n === 4) app.toast(t('toast.needPoints'));
     return;
   }
   const prev = steps[state.step];
@@ -210,21 +212,31 @@ $('#nextBtn').addEventListener('click', () => goStep(state.step + 1));
 
 const ICON = { '': 'i-check', warn: 'i-alert', error: 'i-alert', busy: 'i-video' };
 
-function showInfo(title, meta = '', kind = '') {
+// render() возвращает { title, meta, kind } — перерисовывается при смене языка.
+let infoRender = null;
+
+function renderInfo() {
+  if (!infoRender) return;
+  const { title, meta = '', kind = '' } = infoRender();
   const el = $('#videoInfo');
   el.innerHTML = `<svg class="i"><use href="#${ICON[kind]}"/></svg><div><b>${title}</b>${meta ? `<div class="meta">${meta}</div>` : ''}</div>`;
   el.className = 'filecard ' + kind;
 }
 
+function showInfo(render) {
+  infoRender = render;
+  renderInfo();
+}
+
 async function loadFile(file, demo = false) {
-  if (state.points.size && !confirm('Open a new video? Your marked points will be removed.')) return;
-  showInfo('Opening video…', '', 'busy');
+  if (state.points.size && !confirm(t('load.confirm'))) return;
+  showInfo(() => ({ title: t('load.opening'), kind: 'busy' }));
   try {
     await video.load(file);
   } catch (e) {
     console.error(e);
     video.reset();
-    showInfo('This video can’t be opened', 'Your browser may not support its format — for example, HEVC from an iPhone in Chrome on Android or Windows. Try another video, or set iPhone Camera → Formats to “Most Compatible”.', 'error');
+    showInfo(() => ({ title: t('load.failed'), meta: t('load.failedHint'), kind: 'error' }));
     refreshNav();
     return;
   }
@@ -233,17 +245,17 @@ async function loadFile(file, demo = false) {
   state.end = video.frameCount - 1;
   state.points.clear();
   state.boxSize = 0;
+  video.isSample = demo;
   if (demo) applyDemoCalibration();
   viewer.setVideoSize(video.width, video.height);
-  const fpsText = {
-    file: `${fmtNum(video.fps, 2)} fps`,
-    estimate: `≈ ${fmtNum(video.fps, 2)} fps (estimated — check in Calibrate)`,
-    default: 'unknown — enter it in Calibrate',
-  }[video.fpsSource];
   const warn = video.fpsSource !== 'file' || video.variableFps;
-  showInfo(escapeHtml(video.name),
-    `${video.width} × ${video.height} · ${fmtNum(video.duration, 2)} s · ${video.frameCount} frames · ${fpsText}${video.variableFps ? '<br>Variable frame rate — each frame’s exact time is read from the file.' : ''}`,
-    warn ? 'warn' : '');
+  showInfo(() => {
+    const v = fmtNum(video.fps, 2);
+    const fps = { file: t('load.fps', { v }), estimate: t('load.fpsEstimate', { v }), default: t('load.fpsUnknown') }[video.fpsSource];
+    const meta = t('load.meta', { w: video.width, h: video.height, d: fmtNum(video.duration, 2), n: video.frameCount, fps }) +
+      (video.variableFps ? '<br>' + t('load.variable') : '');
+    return { title: escapeHtml(video.name), meta, kind: warn ? 'warn' : '' };
+  });
   refreshNav();
 }
 
@@ -269,19 +281,38 @@ for (const id of ['#fileInput', '#cameraInput']) {
 }
 
 $('#demoBtn').addEventListener('click', async () => {
-  showInfo('Loading sample…', '', 'busy');
+  showInfo(() => ({ title: t('load.sample'), kind: 'busy' }));
   try {
     const r = await fetch('demo/throw.mp4');
     if (!r.ok) throw new Error(r.status);
     const blob = await r.blob();
-    await loadFile(new File([blob], 'Sample — projectile.mp4', { type: 'video/mp4' }), true);
+    await loadFile(new File([blob], t('load.sampleName'), { type: 'video/mp4' }), true);
   } catch {
-    showInfo('The sample couldn’t be loaded', '', 'error');
+    showInfo(() => ({ title: t('load.sampleFailed'), kind: 'error' }));
   }
 });
 
 window.addEventListener('beforeunload', e => {
   if (state.points.size) { e.preventDefault(); e.returnValue = ''; }
 });
+
+// ---------- Язык ----------
+
+function paintLang() {
+  document.querySelectorAll('#langBtn span').forEach(s => s.classList.toggle('on', s.dataset.l === getLang()));
+}
+$('#langBtn').addEventListener('click', () => setLang(getLang() === 'en' ? 'pt' : 'en'));
+onLang(() => {
+  paintLang();
+  $('#toast').classList.remove('show');
+  $('#toast').textContent = '';
+  if (video.isSample) video.name = t('load.sampleName');
+  renderInfo();
+  updateFrameInfo();
+  refreshNav();
+  for (const s of Object.values(steps)) if (s.relabel) s.relabel();
+  viewer.render();
+});
+paintLang();
 
 goStep(1);

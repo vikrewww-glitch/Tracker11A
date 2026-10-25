@@ -85,13 +85,22 @@ button { -webkit-tap-highlight-color: transparent; }
 .stepbtn.done { color: var(--text-2); }
 .stepbtn.active { color: var(--text); background: var(--fill); }
 .stepbtn:disabled { opacity: .45; cursor: default; }
+.langbtn {
+  flex: none; display: inline-flex; gap: 2px; border: 0; background: var(--fill); border-radius: 980px;
+  padding: 3px; cursor: pointer; font-size: 12px; font-weight: 600; letter-spacing: 0.02em;
+}
+.langbtn span { padding: 4px 8px; border-radius: 980px; color: var(--text-3); transition: background .2s, color .2s; }
+.langbtn span.on { background: var(--seg-on); color: var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, .12); }
+.tips li.tip-key { color: var(--text); }
+.tips li.tip-key b { font-weight: 600; }
 .progress { height: 2px; background: var(--sep); }
 .progress span { display: block; height: 100%; width: 25%; background: var(--accent); transition: width .5s cubic-bezier(.2, .8, .2, 1); }
-@media (max-width: 440px) {
+@media (max-width: 560px) {
   .brand { display: none; }
-  .topbar-inner { justify-content: center; padding: 0 8px; }
-  .steps { width: 100%; justify-content: space-between; }
-  .stepbtn { padding: 8px 12px; }
+  .topbar-inner { padding: 0 8px 0 4px; gap: 6px; }
+  .steps { flex: 1; justify-content: space-between; min-width: 0; }
+  .stepbtn { padding: 7px 8px; font-size: 13.5px; }
+  .langbtn span { padding: 4px 6px; }
 }
 
 /* ---------- Layout ---------- */
@@ -238,7 +247,7 @@ input[type=range]::-webkit-slider-thumb {
 input[type=range]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--fill-strong); }
 input[type=range]::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--accent); }
 input[type=range]::-moz-range-thumb { width: 26px; height: 26px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 0.5px 4px rgba(0, 0, 0, .14), 0 6px 13px rgba(0, 0, 0, .14); }
-.row input[type=range] { flex: 1.4; }
+.row input[type=range] { flex: 0 0 46%; }
 
 .status { margin: 10px 4px 16px; font-size: 15px; color: var(--text-2); min-height: 1.4em; text-align: center; }
 .status.bad { color: var(--red); }

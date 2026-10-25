@@ -20,12 +20,13 @@ function niceRange(lo, hi) {
   return [lo - pad, hi + pad];
 }
 
-export function formatTick(v, step) {
+export function formatTick(v, step, comma = false) {
   const dec = Math.max(0, Math.min(6, -Math.floor(Math.log10(step) + 1e-9)));
-  return (Math.abs(v) < step / 1e6 ? 0 : v).toFixed(dec).replace('-', '−');
+  const s = (Math.abs(v) < step / 1e6 ? 0 : v).toFixed(dec).replace('-', '−');
+  return comma ? s.replace('.', ',') : s;
 }
 
-// opts: { width, height, dpr, xs, ys, xLabel, yLabel, color, title, highlight, theme, font }
+// opts: { width, height, dpr, xs, ys, xLabel, yLabel, color, title, highlight, theme, font, comma }
 export function drawChart(canvas, opts) {
   const { width, height, dpr = 1, xs, ys, color = '#0071e3' } = opts;
   const th = { ...LIGHT, ...(opts.theme || {}) };
@@ -72,7 +73,7 @@ export function drawChart(canvas, opts) {
     const zero = Math.abs(v) < ys_ / 1e6;
     ctx.strokeStyle = zero ? th.zero : th.grid;
     ctx.beginPath(); ctx.moveTo(left, Math.round(Y(v)) + 0.5); ctx.lineTo(left + pw, Math.round(Y(v)) + 0.5); ctx.stroke();
-    ctx.fillText(formatTick(v, ys_), left - fs * 0.7, Y(v));
+    ctx.fillText(formatTick(v, ys_, opts.comma), left - fs * 0.7, Y(v));
   }
   const xs_ = niceStep(x1 - x0, Math.max(2, Math.floor(pw / (fs * 5.5))));
   ctx.textAlign = 'center';
@@ -80,7 +81,7 @@ export function drawChart(canvas, opts) {
   for (let v = Math.ceil(x0 / xs_) * xs_; v <= x1 + 1e-12; v += xs_) {
     ctx.strokeStyle = th.grid;
     ctx.beginPath(); ctx.moveTo(Math.round(X(v)) + 0.5, top + ph); ctx.lineTo(Math.round(X(v)) + 0.5, top + ph + 4); ctx.stroke();
-    ctx.fillText(formatTick(v, xs_), X(v), top + ph + fs * 0.7);
+    ctx.fillText(formatTick(v, xs_, opts.comma), X(v), top + ph + fs * 0.7);
   }
 
   // Подписи осей.

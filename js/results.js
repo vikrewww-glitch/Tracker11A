@@ -1,7 +1,8 @@
 // Шаг 4: графики, таблица и экспорт.
-import { computeSeries } from './physics.js?v=20261025095113';
-import { drawChart, nearestPoint } from './chart.js?v=20261025095113';
-import { COLUMNS, fmt, tableText, copyText, saveBlob, canvasToBlobSync } from './export.js?v=20261025095113';
+import { computeSeries } from './physics.js?v=20261025101616';
+import { drawChart, nearestPoint } from './chart.js?v=20261025101616';
+import { COLUMNS, fmt, tableText, copyText, saveBlob, canvasToBlobSync } from './export.js?v=20261025101616';
+import { t, getLang } from './i18n.js?v=20261025101616';
 
 export const QUANTITIES = [
   { key: 'x', html: 'x', name: 'x', unit: 'm', dec: 3 },
@@ -26,7 +27,10 @@ export function initResults(app) {
   const chart = $('#chart'), readout = $('#readout');
   let series = null, layout = null, highlight = null;
 
-  try { state.comma = localStorage.getItem('decSep') === 'comma'; } catch { state.comma = false; }
+  // Разделитель: сохранённый выбор, иначе — по языку (в португальском принята запятая).
+  const savedSep = () => { try { return localStorage.getItem('decSep'); } catch { return null; } };
+  const defaultComma = () => (savedSep() ? savedSep() === 'comma' : getLang() === 'pt');
+  state.comma = defaultComma();
 
   const tabs = $('#qTabs');
   for (const q of QUANTITIES) {
@@ -55,10 +59,10 @@ export function initResults(app) {
     layout = drawChart(chart, {
       width: w, height: h, dpr: window.devicePixelRatio || 1,
       xs: series.t, ys: series[q.key], color: th.accent, theme: th,
-      xLabel: 't (s)', yLabel: `${q.name} (${q.unit})`, highlight,
+      xLabel: 't (s)', yLabel: `${q.name} (${q.unit})`, highlight, comma: state.comma,
     });
     const vals = series[q.key].filter(v => v != null);
-    $('#statLabel').textContent = `Mean ${q.name}`;
+    $('#statLabel').textContent = t('res.mean', { q: q.name });
     if (vals.length) {
       const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
       $('#statMean').textContent = `${num(mean, q.dec)} ${q.unit}`;
@@ -67,7 +71,7 @@ export function initResults(app) {
     } else {
       ['#statMean', '#statMin', '#statMax'].forEach(s => { $(s).textContent = '—'; });
     }
-    if (highlight == null) readout.textContent = vals.length ? 'Touch the chart to read a value' : 'Not enough points for this quantity';
+    if (highlight == null) readout.textContent = t(vals.length ? 'res.touch' : 'res.notEnough');
   }
 
   function drawTable() {
@@ -116,12 +120,12 @@ export function initResults(app) {
 
   $('#copyBtn').addEventListener('click', async () => {
     const ok = await copyText(tableText(series, '\t', state.comma));
-    app.toast(ok ? 'Copied — paste it into Excel or Google Sheets' : 'Couldn’t copy. Try Download CSV instead');
+    app.toast(t(ok ? 'toast.copied' : 'toast.copyFailed'));
   });
 
   $('#csvBtn').addEventListener('click', () => {
     const text = '﻿' + tableText(series, state.comma ? ';' : ',', state.comma);
-    saveBlob(new Blob([text], { type: 'text/csv;charset=utf-8' }), `${baseName()}_data.csv`);
+    saveBlob(new Blob([text], { type: 'text/csv;charset=utf-8' }), `${baseName()}_${t('res.file')}.csv`);
   });
 
   $('#pngBtn').addEventListener('click', () => {
@@ -130,11 +134,11 @@ export function initResults(app) {
     drawChart(c, {
       width: 1600, height: 1000, dpr: 1, font: 26,
       xs: series.t, ys: series[q.key], color: '#0071e3',
-      xLabel: 't (s)', yLabel: `${q.name} (${q.unit})`,
-      title: `${q.name} vs. t${state.smoothing !== 'none' ? ' (smoothed)' : ''}`,
+      xLabel: 't (s)', yLabel: `${q.name} (${q.unit})`, comma: state.comma,
+      title: t('res.chartTitle', { q: q.name }) + (state.smoothing !== 'none' ? t('res.smoothed') : ''),
     });
     saveBlob(canvasToBlobSync(c), `${baseName()}_${q.key}.png`).then(r => {
-      if (r === 'downloaded') app.toast('Chart saved');
+      if (r === 'downloaded') app.toast(t('toast.chartSaved'));
     });
   });
 
@@ -149,6 +153,11 @@ export function initResults(app) {
       requestAnimationFrame(recompute);
     },
     leave() {},
+    relabel() {
+      state.comma = defaultComma();
+      setSegmented('#decSep', 'dec', state.comma ? 'comma' : 'dot');
+      if (series) { draw(); drawTable(); }
+    },
     get series() { return series; },
   };
 }

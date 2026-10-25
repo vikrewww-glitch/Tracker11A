@@ -28,7 +28,7 @@ def ball_pos(t, a):
     return x, y
 
 
-def background():
+def background(clutter=False):
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
     img = np.zeros((H, W, 3), np.float32)
     img[..., 0] = 214 + 18 * yy / H
@@ -36,6 +36,13 @@ def background():
     img[..., 2] = 240 - 6 * xx / W
     grid = ((xx % 50) < 1) | ((yy % 50) < 1)
     img[grid] *= 0.93
+    if clutter:
+        # Пёстрый фон: цветные прямоугольники, в том числе тёплых оттенков, похожих на мяч.
+        rng = np.random.default_rng(3)
+        for _ in range(60):
+            x, y = rng.integers(0, W - 60), rng.integers(0, int(Y0))
+            w, h = rng.integers(15, 90), rng.integers(15, 90)
+            img[y:y + h, x:x + w] = rng.integers(60, 255, 3)
     # Пол.
     img[int(Y0 + R):, :] = (150, 140, 160)
     # Линейка 1 м: жёлтая полоса с делениями каждые 10 см.
@@ -57,9 +64,14 @@ def main():
     p.add_argument('--lead', type=float, default=0.2)
     p.add_argument('--duration', type=float, default=1.5)
     p.add_argument('--noise', type=float, default=2.0)
+    p.add_argument('--blur', type=int, default=1, help='подкадров на экспозицию (размытие движения)')
+    p.add_argument('--clutter', action='store_true', help='пёстрый фон')
+    p.add_argument('--flicker', type=float, default=0, help='амплитуда мерцания яркости')
+    p.add_argument('--spin', type=float, default=0, help='вращение мяча с полосками, об/с')
+    p.add_argument('--occluder', type=float, default=0, help='x столба, за которым пролетает мяч')
     a = p.parse_args()
 
-    bg = background()
+    bg = background(a.clutter)
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
     rng = np.random.default_rng(1)
     n = int(round(a.duration * a.fps))
@@ -72,12 +84,24 @@ def main():
         t = i / a.fps
         bx, by = ball_pos(t, a)
         truth.append({'frame': i, 't': t, 'x': bx, 'y': by})
-        img = bg.copy()
-        d = np.hypot(xx - bx, yy - by)
-        cov = np.clip(R + 0.5 - d, 0, 1)[..., None]           # сглаженный край
-        shade = np.clip(1 - 0.35 * (d / R), 0.6, 1)[..., None]  # объём
-        ball = np.array([255, 110, 40], np.float32) * shade
-        img = img * (1 - cov) + ball * cov
+        img = np.zeros_like(bg)
+        # Размытие движения: усредняем несколько положений за время экспозиции (половина кадра).
+        for k in range(a.blur):
+            tk = t + (k / a.blur - 0.5) * 0.5 / a.fps if a.blur > 1 else t
+            kx, ky = ball_pos(tk, a)
+            d = np.hypot(xx - kx, yy - ky)
+            cov = np.clip(R + 0.5 - d, 0, 1)[..., None]           # сглаженный край
+            shade = np.clip(1 - 0.35 * (d / R), 0.6, 1)[..., None]  # объём
+            ball = np.array([255, 110, 40], np.float32) * shade
+            if a.spin:
+                ang = np.arctan2(yy - ky, xx - kx) + 2 * np.pi * a.spin * tk
+                stripe = (np.sin(3 * ang) > 0.3)[..., None]
+                ball = np.where(stripe, ball * 0.45, ball)
+            img += (bg * (1 - cov) + ball * cov) / a.blur
+        if a.occluder:
+            img[:int(Y0 + R), int(a.occluder):int(a.occluder) + 46] = (90, 70, 60)
+        if a.flicker:
+            img *= 1 + a.flicker * np.sin(2 * np.pi * 7 * t)
         if a.noise:
             img += rng.normal(0, a.noise, img.shape)
         proc.stdin.write(np.clip(img, 0, 255).astype(np.uint8).tobytes())
