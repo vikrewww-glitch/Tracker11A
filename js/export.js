@@ -1,13 +1,13 @@
 // Экспорт: таблица для Excel (через табуляцию), CSV и PNG.
 
 export const COLUMNS = [
-  { key: 't', label: 't (с)', dec: 4 },
-  { key: 'x', label: 'x (м)', dec: 4 },
-  { key: 'y', label: 'y (м)', dec: 4 },
-  { key: 'vx', label: 'vx (м/с)', dec: 3 },
-  { key: 'vy', label: 'vy (м/с)', dec: 3 },
-  { key: 'ax', label: 'ax (м/с²)', dec: 3 },
-  { key: 'ay', label: 'ay (м/с²)', dec: 3 },
+  { key: 't', label: 't (s)', dec: 4 },
+  { key: 'x', label: 'x (m)', dec: 4 },
+  { key: 'y', label: 'y (m)', dec: 4 },
+  { key: 'vx', label: 'vx (m/s)', dec: 3 },
+  { key: 'vy', label: 'vy (m/s)', dec: 3 },
+  { key: 'ax', label: 'ax (m/s²)', dec: 3 },
+  { key: 'ay', label: 'ay (m/s²)', dec: 3 },
 ];
 
 export function fmt(v, dec, comma) {

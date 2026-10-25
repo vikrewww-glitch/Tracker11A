@@ -39,7 +39,7 @@ const app = {
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
   },
   goto(n) {
     clearTimeout(busyTimer);
@@ -57,6 +57,7 @@ const app = {
     s.min = a;
     s.max = b;
     s.value = video.current;
+    paintRange(s);
     updateFrameInfo();
   },
   // Точки в метрах и секундах, отсортированные по времени.
@@ -83,7 +84,15 @@ app.exportText = (sep, comma) => tableText(results.series, sep, comma);
 
 // ---------- Покадровая навигация ----------
 
-function fmtNum(v, d) { return v.toFixed(d).replace('.', ','); }
+function fmtNum(v, d) { return v.toFixed(d); }
+
+// Заливка дорожки ползунка до текущего значения.
+function paintRange(el) {
+  const min = +el.min, max = +el.max;
+  el.style.setProperty('--p', (max > min ? (el.value - min) / (max - min) * 100 : 0) + '%');
+}
+app.paintRange = paintRange;
+document.addEventListener('input', e => { if (e.target.matches('input[type=range]')) paintRange(e.target); });
 
 function updateFrameInfo() {
   const n = video.current;
@@ -91,10 +100,10 @@ function updateFrameInfo() {
   const info = $('#frameInfo');
   if (state.step === 3) {
     const t = video.timeOf(n) - video.timeOf(state.start);
-    const has = state.points.has(n) ? ' · <span style="color:#17b978">✓ точка</span>' : '';
-    info.innerHTML = `Кадр <b>${n}</b> (${state.start}–${state.end}) · t = <b>${fmtNum(t, 3)}</b> с${has}`;
+    const has = state.points.has(n) ? ' · <span class="ok">Marked</span>' : '';
+    info.innerHTML = `Frame <b>${n}</b> <span>(${state.start}–${state.end})</span> · t = <b>${fmtNum(t, 3)}</b> s${has}`;
   } else {
-    info.innerHTML = `Кадр <b>${n}</b> из ${video.frameCount - 1} · t = <b>${fmtNum(video.timeOf(n), 3)}</b> с`;
+    info.innerHTML = `Frame <b>${n}</b> of ${video.frameCount - 1} · t = <b>${fmtNum(video.timeOf(n), 3)}</b> s`;
   }
   $('#prevFrame').disabled = n <= range[0];
   $('#nextFrame').disabled = n >= range[1];
@@ -103,6 +112,7 @@ function updateFrameInfo() {
 video.onframe = n => {
   const s = $('#frameSlider');
   if (document.activeElement !== s || !s.matches(':active')) s.value = n;
+  paintRange(s);
   updateFrameInfo();
   if (steps[state.step] && steps[state.step].onFrame) steps[state.step].onFrame(n);
   viewer.render();
@@ -164,13 +174,15 @@ function refreshNav() {
   const next = $('#nextBtn');
   next.classList.toggle('hidden', state.step === 4);
   next.disabled = !canEnter(state.step + 1);
-  next.textContent = state.step === 3 ? 'Результаты →' : 'Далее →';
+  next.textContent = state.step === 3 ? 'See Results' : 'Continue';
+  $('#progress').style.width = state.step * 25 + '%';
 }
 
 function goStep(n) {
   if (!canEnter(n)) {
-    if (n === 3) app.toast('Введите длину предмета для масштаба');
-    if (n === 4) app.toast('Поставьте хотя бы 3 точки');
+    if (n === 2) app.toast('Choose a video first');
+    if (n === 3) app.toast('Enter the reference length');
+    if (n === 4) app.toast('Mark at least 3 points');
     return;
   }
   const prev = steps[state.step];
@@ -196,21 +208,23 @@ $('#nextBtn').addEventListener('click', () => goStep(state.step + 1));
 
 // ---------- Шаг 1: загрузка видео ----------
 
-function showInfo(html, kind = '') {
+const ICON = { '': 'i-check', warn: 'i-alert', error: 'i-alert', busy: 'i-video' };
+
+function showInfo(title, meta = '', kind = '') {
   const el = $('#videoInfo');
-  el.innerHTML = html;
-  el.className = 'card info ' + kind;
+  el.innerHTML = `<svg class="i"><use href="#${ICON[kind]}"/></svg><div><b>${title}</b>${meta ? `<div class="meta">${meta}</div>` : ''}</div>`;
+  el.className = 'filecard ' + kind;
 }
 
 async function loadFile(file, demo = false) {
-  if (state.points.size && !confirm('Загрузить новое видео? Поставленные точки будут удалены.')) return;
-  showInfo('<b>Открываю видео…</b>');
+  if (state.points.size && !confirm('Open a new video? Your marked points will be removed.')) return;
+  showInfo('Opening video…', '', 'busy');
   try {
     await video.load(file);
   } catch (e) {
     console.error(e);
     video.reset();
-    showInfo('<b>Не удалось открыть видео</b><div class="meta">Возможно, этот браузер не поддерживает формат файла (например, HEVC с iPhone в Chrome на Android или Windows). Попробуйте другое видео или в настройках камеры iPhone выберите «Наиболее совместимый» формат.</div>', 'error');
+    showInfo('This video can’t be opened', 'Your browser may not support its format — for example, HEVC from an iPhone in Chrome on Android or Windows. Try another video, or set iPhone Camera → Formats to “Most Compatible”.', 'error');
     refreshNav();
     return;
   }
@@ -222,13 +236,14 @@ async function loadFile(file, demo = false) {
   if (demo) applyDemoCalibration();
   viewer.setVideoSize(video.width, video.height);
   const fpsText = {
-    file: `${fmtNum(video.fps, 2)} к/с (из файла)`,
-    estimate: `≈ ${fmtNum(video.fps, 2)} к/с (оценка, проверьте на шаге 2)`,
-    default: 'не определилась, введите на шаге 2',
+    file: `${fmtNum(video.fps, 2)} fps`,
+    estimate: `≈ ${fmtNum(video.fps, 2)} fps (estimated — check in Calibrate)`,
+    default: 'unknown — enter it in Calibrate',
   }[video.fpsSource];
   const warn = video.fpsSource !== 'file' || video.variableFps;
-  showInfo(`<b>✓ ${escapeHtml(video.name)}</b>
-    <div class="meta">${video.width}×${video.height} · ${fmtNum(video.duration, 2)} с · ${video.frameCount} кадров<br>FPS: ${fpsText}${video.variableFps ? '<br>⚠ Частота кадров переменная, время берётся для каждого кадра из файла' : ''}</div>`, warn ? 'warn' : '');
+  showInfo(escapeHtml(video.name),
+    `${video.width} × ${video.height} · ${fmtNum(video.duration, 2)} s · ${video.frameCount} frames · ${fpsText}${video.variableFps ? '<br>Variable frame rate — each frame’s exact time is read from the file.' : ''}`,
+    warn ? 'warn' : '');
   refreshNav();
 }
 
@@ -236,6 +251,9 @@ async function loadFile(file, demo = false) {
 function applyDemoCalibration() {
   state.cal.scale = { a: { x: 140, y: 660 }, b: { x: 640, y: 660 }, length: 1 };
   state.cal.axes.origin = { x: 140, y: 600 };
+  // Полёт мяча — кадры 6…31 (бросок в 0.2 с, приземление в 1.06 с).
+  state.start = 6;
+  state.end = 31;
 }
 
 function escapeHtml(s) {
@@ -251,14 +269,14 @@ for (const id of ['#fileInput', '#cameraInput']) {
 }
 
 $('#demoBtn').addEventListener('click', async () => {
-  showInfo('<b>Загружаю пример…</b>');
+  showInfo('Loading sample…', '', 'busy');
   try {
     const r = await fetch('demo/throw.mp4');
     if (!r.ok) throw new Error(r.status);
     const blob = await r.blob();
-    await loadFile(new File([blob], 'Пример — бросок мяча.mp4', { type: 'video/mp4' }), true);
+    await loadFile(new File([blob], 'Sample — projectile.mp4', { type: 'video/mp4' }), true);
   } catch {
-    showInfo('<b>Не удалось загрузить пример</b>', 'error');
+    showInfo('The sample couldn’t be loaded', '', 'error');
   }
 });
 

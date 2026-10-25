@@ -1,171 +1,237 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#5a4bff">
-  <title>Видеотрекер</title>
-  <meta name="description" content="Видеоанализ движения на уроках физики прямо в браузере телефона">
+  <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <title>Tracker — Motion Analysis</title>
+  <meta name="description" content="Video motion analysis for physics class, right in your phone's browser.">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-left" viewBox="0 0 24 24"><path d="M14.5 5.5 8 12l6.5 6.5"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24"><path d="M10 6.5 15.5 12 10 17.5"/></symbol>
+    <symbol id="i-photo" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="m20.5 15.5-4.5-4.5-8.5 8"/></symbol>
+    <symbol id="i-video" viewBox="0 0 24 24"><rect x="2.5" y="6.5" width="13" height="11" rx="3"/><path d="m15.5 10.5 6-3.2v9.4l-6-3.2"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m10.2 8.8 5 3.2-5 3.2z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m8.3 12.3 2.5 2.5 5-5.3"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.8v5M12 16.2v.1"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="2.5"/><path d="M15.5 8.5v-2a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4.5v11M7.5 11l4.5 4.5 4.5-4.5M5.5 19.5h13"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="m3.5 15.5 4.5-4 4 3.5 3-2.5 5 4"/><circle cx="15.5" cy="9" r="1.4"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M6 12h12"/></symbol>
+    <symbol id="i-fit" viewBox="0 0 24 24"><path d="M4.5 9V4.5H9M19.5 9V4.5H15M4.5 15v4.5H9M19.5 15v4.5H15"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M10 4.5h4M7 7l.8 11.2a2 2 0 0 0 2 1.8h4.4a2 2 0 0 0 2-1.8L17 7"/></symbol>
+  </svg>
+
   <header class="topbar">
-    <div class="brand"><span class="logo">●</span> Видеотрекер</div>
-    <nav class="steps" id="steps">
-      <button class="stepbtn" data-step="1"><span>1</span><em>Видео</em></button>
-      <button class="stepbtn" data-step="2"><span>2</span><em>Калибровка</em></button>
-      <button class="stepbtn" data-step="3"><span>3</span><em>Трекинг</em></button>
-      <button class="stepbtn" data-step="4"><span>4</span><em>Результаты</em></button>
-    </nav>
+    <div class="topbar-inner">
+      <div class="brand">Tracker</div>
+      <nav class="steps" id="steps">
+        <button class="stepbtn" data-step="1">Video</button>
+        <button class="stepbtn" data-step="2">Calibrate</button>
+        <button class="stepbtn" data-step="3">Track</button>
+        <button class="stepbtn" data-step="4">Results</button>
+      </nav>
+    </div>
+    <div class="progress"><span id="progress"></span></div>
   </header>
 
   <main id="main">
-    <!-- Шаг 1 -->
+    <!-- Step 1 -->
     <section class="step" id="step1">
-      <h1>Видеоанализ движения</h1>
-      <p class="lead">Загрузите видео движущегося тела: координаты, скорость и ускорение посчитаются прямо в браузере. Видео никуда не отправляется.</p>
-      <div class="bigbuttons">
-        <label class="btn big primary">
+      <div class="hero">
+        <p class="eyebrow">Physics motion analysis</p>
+        <h1>See motion<br>in numbers.</h1>
+        <p class="lead">Track a moving object frame by frame. Position, velocity and acceleration are computed on your device — your video never leaves it.</p>
+      </div>
+      <div class="list">
+        <label class="row link has-icon">
           <input type="file" accept="video/*" id="fileInput" hidden>
-          <span class="ico">📁</span> Выбрать видео
+          <span class="badge blue"><svg class="i"><use href="#i-photo"/></svg></span>
+          <span class="row-text"><b>Choose Video</b><small>From your library or files</small></span>
+          <svg class="i chev"><use href="#i-chev"/></svg>
         </label>
-        <label class="btn big accent">
+        <label class="row link has-icon">
           <input type="file" accept="video/*" capture="environment" id="cameraInput" hidden>
-          <span class="ico">🎥</span> Снять видео
+          <span class="badge orange"><svg class="i"><use href="#i-video"/></svg></span>
+          <span class="row-text"><b>Record Video</b><small>Use the camera</small></span>
+          <svg class="i chev"><use href="#i-chev"/></svg>
         </label>
-        <button class="btn big soft" id="demoBtn"><span class="ico">⚽</span> Пример: бросок мяча</button>
+        <button class="row link has-icon" id="demoBtn">
+          <span class="badge green"><svg class="i"><use href="#i-play"/></svg></span>
+          <span class="row-text"><b>Try a Sample</b><small>A ball in projectile motion</small></span>
+          <svg class="i chev"><use href="#i-chev"/></svg>
+        </button>
       </div>
-      <div class="card info hidden" id="videoInfo"></div>
-      <div class="card tips">
-        <b>Как снять хорошее видео</b>
-        <ul>
-          <li>Телефон неподвижен: штатив или опора.</li>
-          <li>Камера смотрит перпендикулярно плоскости движения.</li>
-          <li>В кадре лежит предмет известной длины, например линейка 1 м.</li>
-          <li>Хорошее освещение, контрастный фон.</li>
-        </ul>
-      </div>
+      <div class="filecard hidden" id="videoInfo"></div>
+      <h2 class="section-title">For best results</h2>
+      <ul class="tips">
+        <li>Keep the phone still — use a tripod or rest it on something.</li>
+        <li>Point the camera straight at the plane of motion.</li>
+        <li>Include an object of known length, like a meter stick.</li>
+        <li>Use good lighting and a plain, contrasting background.</li>
+      </ul>
     </section>
 
-    <!-- Шаг 2 -->
+    <!-- Step 2 -->
     <section class="step" id="step2">
+      <div class="stephead">
+        <h1>Calibrate</h1>
+        <p class="lead">Set the time range, the scale and the coordinate axes.</p>
+      </div>
       <div class="segmented" id="calTabs">
-        <button data-tab="frames" class="on">Кадры</button>
-        <button data-tab="scale">Масштаб</button>
-        <button data-tab="axes">Оси</button>
+        <button data-tab="frames" class="on">Frames</button>
+        <button data-tab="scale">Scale</button>
+        <button data-tab="axes">Axes</button>
       </div>
       <div class="viewer-slot"></div>
       <div class="panel" data-panel="frames">
-        <div class="field">
-          <label for="fpsInput">Частота кадров (FPS)</label>
+        <div class="list">
           <div class="row">
+            <label class="row-label" for="fpsInput">Frame rate</label>
             <input type="number" id="fpsInput" inputmode="decimal" min="1" max="1000" step="0.01">
-            <span class="note" id="fpsNote"></span>
+            <span class="unit">fps</span>
+          </div>
+          <div class="row">
+            <span class="row-label">Start frame <b class="val" id="startVal">0</b></span>
+            <button class="btn tinted small" id="setStart">Set to Current</button>
+          </div>
+          <div class="row">
+            <span class="row-label">End frame <b class="val" id="endVal">0</b></span>
+            <button class="btn tinted small" id="setEnd">Set to Current</button>
           </div>
         </div>
-        <div class="rangepick">
-          <div class="rp">
-            <div class="rp-label">Начальный кадр</div>
-            <div class="rp-val" id="startVal">0</div>
-            <button class="btn small" id="setStart">⤓ Текущий кадр</button>
-          </div>
-          <div class="rp">
-            <div class="rp-label">Конечный кадр</div>
-            <div class="rp-val" id="endVal">0</div>
-            <button class="btn small" id="setEnd">⤓ Текущий кадр</button>
-          </div>
-        </div>
-        <p class="hint">Найдите кадр, где начинается движение, и нажмите «Текущий кадр». Так же выберите конец.</p>
+        <p class="footnote"><span id="fpsNote"></span> Scrub to where the motion begins and tap “Set to Current”, then do the same for the end.</p>
       </div>
       <div class="panel hidden" data-panel="scale">
-        <p class="hint"><span class="dot blue"></span> Перетащите две синие точки на концы предмета известной длины.</p>
-        <div class="field">
-          <label for="lengthInput">Длина предмета, м</label>
+        <div class="list">
           <div class="row">
+            <label class="row-label" for="lengthInput">Reference length</label>
             <input type="number" id="lengthInput" inputmode="decimal" min="0" step="0.01" value="1">
-            <span class="note" id="ppmNote"></span>
+            <span class="unit">m</span>
           </div>
         </div>
+        <p class="footnote">Drag the two blue handles to the ends of an object of known length. <span id="ppmNote"></span></p>
       </div>
       <div class="panel hidden" data-panel="axes">
-        <p class="hint"><span class="dot pink"></span> Перетащите начало координат. Потяните за стрелку оси X, чтобы повернуть оси.</p>
-        <div class="field">
-          <label for="angleInput">Поворот оси X, °</label>
+        <div class="list">
           <div class="row">
+            <label class="row-label" for="angleInput">Rotation</label>
+            <button class="btn plain small" data-angle="0">Reset</button>
             <input type="number" id="angleInput" inputmode="decimal" step="1" value="0">
-            <button class="btn small" data-angle="0">0°</button>
-            <button class="btn small" id="flipY">Y ⇅</button>
+            <span class="unit">°</span>
+          </div>
+          <div class="row">
+            <span class="row-label">Y axis</span>
+            <div class="segmented mini" id="yDir">
+              <button data-ydir="up" class="on">Up</button>
+              <button data-ydir="down">Down</button>
+            </div>
           </div>
         </div>
-        <p class="note" id="axesNote"></p>
+        <p class="footnote">Drag the origin to move the axes. Drag the end of the x arrow to rotate them.</p>
       </div>
     </section>
 
-    <!-- Шаг 3 -->
+    <!-- Step 3 -->
     <section class="step" id="step3">
+      <div class="stephead">
+        <h1>Track</h1>
+        <p class="lead" id="trackLead">Tap the center of the object. The video advances to the next frame automatically.</p>
+      </div>
       <div class="segmented" id="modeTabs">
-        <button data-mode="manual" class="on">✋ Вручную</button>
-        <button data-mode="auto">✨ Авто</button>
+        <button data-mode="manual" class="on">Manual</button>
+        <button data-mode="auto">Automatic</button>
       </div>
       <div class="viewer-slot"></div>
-      <div class="panel" data-mode-panel="manual">
-        <p class="hint">Тапните по центру объекта. Видео само перейдёт на следующий кадр. Удерживайте палец, чтобы прицелиться через лупу.</p>
-      </div>
       <div class="panel hidden" data-mode-panel="auto">
-        <p class="hint" id="autoHint">Тапните по центру объекта и подберите размер рамки, чтобы объект поместился в неё. Затем нажмите «Отследить».</p>
-        <div class="field">
-          <label for="boxSize">Размер рамки</label>
-          <input type="range" id="boxSize" min="8" max="200" value="40">
+        <div class="list">
+          <div class="row">
+            <label class="row-label" for="boxSize">Box size</label>
+            <input type="range" id="boxSize" min="8" max="200" value="40">
+          </div>
         </div>
-        <div class="row gap">
-          <button class="btn primary grow" id="autoRun">▶ Отследить</button>
-        </div>
+        <button class="btn primary block" id="autoRun">Start Tracking</button>
         <p class="status" id="autoStatus"></p>
       </div>
-      <div class="row gap wrap trackopts">
-        <label class="inline">Шаг
+      <div class="list">
+        <div class="row">
+          <label class="row-label" for="stepSelect">Frame step</label>
           <select id="stepSelect">
-            <option value="1">каждый кадр</option>
-            <option value="2">через 1</option>
-            <option value="3">через 2</option>
-            <option value="5">через 4</option>
+            <option value="1">Every frame</option>
+            <option value="2">Every 2nd</option>
+            <option value="3">Every 3rd</option>
+            <option value="5">Every 5th</option>
           </select>
-        </label>
-        <span class="count" id="pointCount">Точек: 0</span>
+        </div>
+        <div class="row">
+          <span class="row-label">Points</span>
+          <b class="val" id="pointCount">0</b>
+        </div>
       </div>
-      <div class="row gap wrap">
-        <button class="btn small" id="delPoint">✕ Удалить точку</button>
-        <button class="btn small danger" id="clearPoints">Очистить всё</button>
+      <div class="actions-row">
+        <button class="btn plain small" id="delPoint">Delete Point</button>
+        <button class="btn plain small destructive" id="clearPoints">Clear All</button>
       </div>
     </section>
 
-    <!-- Шаг 4 -->
+    <!-- Step 4 -->
     <section class="step" id="step4">
+      <div class="stephead">
+        <h1>Results</h1>
+        <p class="lead">Velocity and acceleration use central differences.</p>
+      </div>
       <div class="chips" id="qTabs"></div>
       <div class="card chartcard">
         <canvas id="chart"></canvas>
-        <div class="readout" id="readout">Тапните по графику, чтобы увидеть значение</div>
+        <div class="readout" id="readout">Touch the chart to read a value</div>
       </div>
-      <div class="segmented small" id="smoothTabs">
-        <span class="seg-label">Сглаживание</span>
-        <button data-smooth="none" class="on">Нет</button>
-        <button data-smooth="light">Слабое</button>
-        <button data-smooth="strong">Сильное</button>
+      <div class="stats">
+        <div><span id="statLabel">Mean</span><b id="statMean">—</b></div>
+        <div><span>Min</span><b id="statMin">—</b></div>
+        <div><span>Max</span><b id="statMax">—</b></div>
       </div>
-      <p class="stats" id="stats"></p>
-      <div class="actions">
-        <button class="btn primary" id="copyBtn">📋 Скопировать для Excel</button>
-        <button class="btn soft" id="csvBtn">⬇ Скачать CSV</button>
-        <button class="btn soft" id="pngBtn">🖼 Сохранить график</button>
+      <div class="list">
+        <div class="row">
+          <span class="row-label">Smoothing</span>
+          <div class="segmented mini" id="smoothTabs">
+            <button data-smooth="none" class="on">Off</button>
+            <button data-smooth="light">Light</button>
+            <button data-smooth="strong">Strong</button>
+          </div>
+        </div>
+        <div class="row">
+          <span class="row-label">Decimal</span>
+          <div class="segmented mini" id="decSep">
+            <button data-dec="dot" class="on">1.5</button>
+            <button data-dec="comma">1,5</button>
+          </div>
+        </div>
       </div>
-      <label class="inline small-note">
-        Десятичный разделитель
-        <select id="decSep">
-          <option value="comma">запятая (1,5)</option>
-          <option value="dot">точка (1.5)</option>
-        </select>
-      </label>
+      <div class="list">
+        <button class="row link has-icon" id="copyBtn">
+          <svg class="i accent"><use href="#i-copy"/></svg>
+          <span class="row-text"><b>Copy for Excel</b><small>Paste straight into Excel or Google Sheets</small></span>
+        </button>
+        <button class="row link has-icon" id="csvBtn">
+          <svg class="i accent"><use href="#i-down"/></svg>
+          <span class="row-text"><b>Download CSV</b></span>
+        </button>
+        <button class="row link has-icon" id="pngBtn">
+          <svg class="i accent"><use href="#i-image"/></svg>
+          <span class="row-text"><b>Save Chart as Image</b></span>
+        </button>
+      </div>
+      <h2 class="section-title">Data</h2>
       <div class="tablewrap card">
         <table id="table"></table>
       </div>
@@ -173,26 +239,28 @@
   </main>
 
   <footer class="navbar">
-    <button class="btn ghost" id="backBtn">← Назад</button>
-    <button class="btn primary" id="nextBtn">Далее →</button>
+    <div class="navbar-inner">
+      <button class="btn plain" id="backBtn"><svg class="i"><use href="#i-left"/></svg>Back</button>
+      <button class="btn primary" id="nextBtn">Continue</button>
+    </div>
   </footer>
 
-  <!-- Общий просмотрщик кадров, переносится между шагами 2 и 3 -->
+  <!-- Shared frame viewer, moved between steps 2 and 3 -->
   <template id="viewerTpl">
     <div class="viewer">
       <div class="canvaswrap">
         <canvas></canvas>
         <div class="zoombtns">
-          <button data-zoom="in" aria-label="Увеличить">＋</button>
-          <button data-zoom="out" aria-label="Уменьшить">−</button>
-          <button data-zoom="fit" aria-label="Вписать">⤢</button>
+          <button data-zoom="out" aria-label="Zoom out"><svg class="i"><use href="#i-minus"/></svg></button>
+          <button data-zoom="fit" aria-label="Fit"><svg class="i"><use href="#i-fit"/></svg></button>
+          <button data-zoom="in" aria-label="Zoom in"><svg class="i"><use href="#i-plus"/></svg></button>
         </div>
         <div class="busy hidden"></div>
       </div>
       <div class="framebar">
-        <button class="btn icon" id="prevFrame" aria-label="Кадр назад">◀</button>
-        <input type="range" id="frameSlider" min="0" max="0" value="0" aria-label="Кадр">
-        <button class="btn icon" id="nextFrame" aria-label="Кадр вперёд">▶</button>
+        <button class="roundbtn" id="prevFrame" aria-label="Previous frame"><svg class="i"><use href="#i-left"/></svg></button>
+        <input type="range" id="frameSlider" min="0" max="0" value="0" aria-label="Frame">
+        <button class="roundbtn" id="nextFrame" aria-label="Next frame"><svg class="i"><use href="#i-right"/></svg></button>
       </div>
       <div class="frameinfo" id="frameInfo"></div>
     </div>

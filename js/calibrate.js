@@ -3,6 +3,8 @@ import { hitHandles } from './viewer.js';
 import { pixelsPerMeter } from './physics.js';
 
 const AXIS_PX = 90; // длина стрелки оси на экране
+const BLUE = '#0a84ff';
+const PINK = '#ff375f';
 
 export function defaultCalibration(w, h) {
   return {
@@ -32,7 +34,7 @@ function arrow(ctx, from, to, color, width) {
 }
 
 function label(ctx, text, x, y, bg, color = '#fff') {
-  ctx.font = '700 14px system-ui, -apple-system, sans-serif';
+  ctx.font = '600 13px -apple-system, BlinkMacSystemFont, Inter, system-ui, sans-serif';
   const w = ctx.measureText(text).width + 14;
   ctx.fillStyle = bg;
   ctx.beginPath();
@@ -60,7 +62,7 @@ export function drawAxes(ctx, viewer, axes, strong) {
   const L = 5000;
   ctx.save();
   ctx.globalAlpha = strong ? 0.55 : 0.35;
-  ctx.strokeStyle = '#ff3b8b';
+  ctx.strokeStyle = PINK;
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.moveTo(o.x - ux.x * L, o.y - ux.y * L); ctx.lineTo(o.x + ux.x * L, o.y + ux.y * L);
@@ -70,19 +72,19 @@ export function drawAxes(ctx, viewer, axes, strong) {
   if (!strong) return;
   const xe = { x: o.x + ux.x * AXIS_PX, y: o.y + ux.y * AXIS_PX };
   const ye = { x: o.x + uy.x * AXIS_PX * 0.7, y: o.y + uy.y * AXIS_PX * 0.7 };
-  arrow(ctx, o, ye, '#ff3b8b', 3);
-  arrow(ctx, o, xe, '#ff3b8b', 3);
-  label(ctx, 'y', ye.x + uy.x * 16, ye.y + uy.y * 16, '#ff3b8b');
-  handleDot(ctx, o, '#ff3b8b', 10);
-  handleDot(ctx, xe, '#ff3b8b', 11);
-  label(ctx, 'x', xe.x + ux.x * 24, xe.y + ux.y * 24, '#ff3b8b');
+  arrow(ctx, o, ye, PINK, 3);
+  arrow(ctx, o, xe, PINK, 3);
+  label(ctx, 'y', ye.x + uy.x * 16, ye.y + uy.y * 16, PINK);
+  handleDot(ctx, o, PINK, 10);
+  handleDot(ctx, xe, PINK, 11);
+  label(ctx, 'x', xe.x + ux.x * 24, xe.y + ux.y * 24, PINK);
 }
 
 function drawScale(ctx, viewer, scale, strong) {
   const a = viewer.toScreen(scale.a), b = viewer.toScreen(scale.b);
   ctx.save();
   ctx.globalAlpha = strong ? 1 : 0.5;
-  ctx.strokeStyle = '#1f9bff';
+  ctx.strokeStyle = BLUE;
   ctx.lineWidth = 3;
   ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
   // Засечки на концах — перпендикулярно отрезку.
@@ -95,11 +97,11 @@ function drawScale(ctx, viewer, scale, strong) {
   ctx.moveTo(b.x - nx, b.y - ny); ctx.lineTo(b.x + nx, b.y + ny);
   ctx.stroke();
   if (strong) {
-    handleDot(ctx, a, '#1f9bff');
-    handleDot(ctx, b, '#1f9bff');
+    handleDot(ctx, a, BLUE);
+    handleDot(ctx, b, BLUE);
   }
-  const txt = (scale.length > 0 ? String(scale.length).replace('.', ',') : '?') + ' м';
-  label(ctx, txt, (a.x + b.x) / 2 + nx * 2.4, (a.y + b.y) / 2 + ny * 2.4, '#1f9bff');
+  const txt = (scale.length > 0 ? String(scale.length) : '?') + ' m';
+  label(ctx, txt, (a.x + b.x) / 2 + nx * 2.4, (a.y + b.y) / 2 + ny * 2.4, BLUE);
   ctx.restore();
 }
 
@@ -110,7 +112,7 @@ export function initCalibration(app) {
 
   const fpsInput = $('#fpsInput'), fpsNote = $('#fpsNote');
   const lengthInput = $('#lengthInput'), ppmNote = $('#ppmNote');
-  const angleInput = $('#angleInput'), axesNote = $('#axesNote');
+  const angleInput = $('#angleInput');
 
   function axisEnd() {
     const { ux } = axisDirs(state.cal.axes);
@@ -152,21 +154,21 @@ export function initCalibration(app) {
   function updateFields() {
     const { scale, axes } = state.cal;
     const ppm = pixelsPerMeter(scale);
-    ppmNote.textContent = ppm > 0 ? `${ppm.toFixed(1).replace('.', ',')} пикс/м` : '';
+    ppmNote.textContent = ppm > 0 ? `Scale: ${ppm.toFixed(1)} px per meter.` : '';
     if (document.activeElement !== angleInput) {
       let deg = axes.angle * 180 / Math.PI;
       deg = ((deg % 360) + 540) % 360 - 180;
       angleInput.value = Math.round(deg * 10) / 10;
     }
-    axesNote.textContent = axes.flipY ? 'Ось Y направлена вниз от оси X.' : 'Ось Y направлена вверх (против часовой от оси X).';
+    document.querySelectorAll('#yDir button').forEach(b => b.classList.toggle('on', (b.dataset.ydir === 'down') === !!axes.flipY));
     $('#startVal').textContent = state.start;
     $('#endVal').textContent = state.end;
     if (document.activeElement !== fpsInput) fpsInput.value = Math.round(video.fps * 1000) / 1000;
     const notes = {
-      file: video.variableFps ? 'из файла · частота переменная' : 'определено из файла',
-      estimate: 'оценено, проверьте',
-      default: 'не определилось, введите вручную',
-      manual: 'введено вручную',
+      file: video.variableFps ? 'Frame rate read from the file (variable).' : 'Frame rate read from the file.',
+      estimate: 'Frame rate estimated — please check it.',
+      default: 'Frame rate unknown — please enter it.',
+      manual: 'Frame rate entered manually.',
     };
     fpsNote.textContent = notes[video.fpsSource] || '';
   }
@@ -182,7 +184,7 @@ export function initCalibration(app) {
 
   fpsInput.addEventListener('change', () => {
     const f = parseFloat(fpsInput.value.replace(',', '.'));
-    if (!(f >= 1 && f <= 1000)) { updateFields(); app.toast('Введите FPS от 1 до 1000'); return; }
+    if (!(f >= 1 && f <= 1000)) { updateFields(); app.toast('Enter a frame rate between 1 and 1000'); return; }
     const t0 = video.timeOf(state.start), t1 = video.timeOf(state.end);
     const cur = video.timeOf(Math.max(0, video.current));
     video.setFps(f);
@@ -214,24 +216,24 @@ export function initCalibration(app) {
     updateFields();
     app.changed();
   });
-  $('#flipY').addEventListener('click', () => {
-    state.cal.axes.flipY = !state.cal.axes.flipY;
+  document.querySelectorAll('#yDir button').forEach(b => b.addEventListener('click', () => {
+    state.cal.axes.flipY = b.dataset.ydir === 'down';
     updateFields();
     app.changed();
-  });
+  }));
 
   $('#setStart').addEventListener('click', () => {
     state.start = video.current;
     if (state.end < state.start) state.end = video.frameCount - 1;
     updateFields();
-    app.toast(`Начальный кадр: ${state.start}`);
+    app.toast(`Start frame set to ${state.start}`);
     app.changed();
   });
   $('#setEnd').addEventListener('click', () => {
-    if (video.current <= state.start) { app.toast('Конечный кадр должен быть после начального'); return; }
+    if (video.current <= state.start) { app.toast('The end frame must come after the start frame'); return; }
     state.end = video.current;
     updateFields();
-    app.toast(`Конечный кадр: ${state.end}`);
+    app.toast(`End frame set to ${state.end}`);
     app.changed();
   });
 

@@ -45,7 +45,7 @@ await noHScroll('Шаг 1');
 // ---------- Загрузка ----------
 const input = await page.$('#fileInput');
 await input.uploadFile(videoPath);
-await page.waitForFunction(() => document.querySelector('#videoInfo').textContent.includes('✓') ||
+await page.waitForFunction(() => document.querySelector('#videoInfo').textContent.includes('frames') ||
   document.querySelector('#videoInfo').classList.contains('error'), { timeout: 20000 });
 const meta = await page.evaluate(() => {
   const v = window.__app.video;
@@ -182,7 +182,7 @@ for (const q of ['x', 'y', 'vy', 'ay']) {
 // Экспорт: текст для Excel.
 const tsv = await page.evaluate(() => window.__app.exportText('\t', true));
 const rows = tsv.split('\r\n');
-check(rows[0] === 't (с)\tx (м)\ty (м)\tvx (м/с)\tvy (м/с)\tax (м/с²)\tay (м/с²)', 'Заголовок таблицы для Excel');
+check(rows[0] === 't (s)\tx (m)\ty (m)\tvx (m/s)\tvy (m/s)\tax (m/s²)\tay (m/s²)', 'Заголовок таблицы для Excel');
 check(rows.length === expectN + 1, `Строк данных: ${rows.length - 1}`);
 console.log('  ' + rows.slice(0, 4).join('\n  '));
 
@@ -213,9 +213,9 @@ await shot('3-auto-select');
 await page.evaluate((f, p) => window.__app.state.points.set(f, p), f0, { x: truth.frames[f0].x, y: truth.frames[f0].y });
 const t0 = Date.now();
 await page.click('#autoRun');
-await page.waitForFunction(() => /Готово|потерян/.test(document.querySelector('#autoStatus').textContent), { timeout: 60000 });
+await page.waitForFunction(() => /Done|Lost/.test(document.querySelector('#autoStatus').textContent), { timeout: 60000 });
 const status = await page.$eval('#autoStatus', e => e.textContent);
-check(status.includes('Готово'), `Авто-трекинг: «${status}» за ${((Date.now() - t0) / 1000).toFixed(1)} с`);
+check(status.includes('Done'), `Авто-трекинг: «${status}» за ${((Date.now() - t0) / 1000).toFixed(1)} с`);
 await shot('3-auto-done');
 const autoErr = await page.evaluate(frames => {
   const s = window.__app.state;

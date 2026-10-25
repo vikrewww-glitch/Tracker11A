@@ -24,7 +24,7 @@ export function initTracking(app) {
   function updateCount() {
     let n = 0;
     for (const f of state.points.keys()) if (inRange(f)) n++;
-    $('#pointCount').textContent = `Точек: ${n}`;
+    $('#pointCount').textContent = n;
     $('#delPoint').disabled = !state.points.has(video.current);
     app.changed();
   }
@@ -34,6 +34,9 @@ export function initTracking(app) {
     state.mode = m;
     document.querySelectorAll('#modeTabs button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
     document.querySelectorAll('[data-mode-panel]').forEach(p => p.classList.toggle('hidden', p.dataset.modePanel !== m));
+    $('#trackLead').textContent = m === 'auto'
+      ? 'Tap the object once and size the box around it. Tracking then follows it frame by frame.'
+      : 'Tap the center of the object. The video advances to the next frame automatically.';
     viewer.render();
   }
 
@@ -41,7 +44,7 @@ export function initTracking(app) {
     if (running || video.busy) return;
     const f = video.current;
     if (!inRange(f)) {
-      app.toast('Этот кадр вне выбранного диапазона');
+      app.toast('This frame is outside the selected range');
       return;
     }
     if (p.x < 0 || p.y < 0 || p.x > video.width || p.y > video.height) return;
@@ -49,11 +52,11 @@ export function initTracking(app) {
     if (state.mode === 'manual') {
       const next = f + state.trackStep;
       if (next <= state.end) app.goto(next);
-      else app.toast('Готово! Это конечный кадр. Переходите к результатам');
+      else app.toast('Last frame reached — on to the results');
     } else {
       lastTap = p;
-      setStatus('Объект выбран. Нажмите «Отследить»');
-      autoRun.textContent = '▶ Отследить';
+      setStatus('Object selected. Tap Start Tracking.');
+      autoRun.textContent = 'Start Tracking';
     }
     updateCount();
     viewer.render();
@@ -64,7 +67,7 @@ export function initTracking(app) {
     const frames = [...state.points.keys()].filter(inRange).sort((a, b) => a - b);
     // След траектории.
     ctx.lineWidth = 1.5;
-    ctx.strokeStyle = 'rgba(255, 210, 61, 0.7)';
+    ctx.strokeStyle = 'rgba(255, 214, 10, 0.7)';
     ctx.beginPath();
     frames.forEach((f, i) => {
       const s = v.toScreen(state.points.get(f));
@@ -76,7 +79,7 @@ export function initTracking(app) {
       const s = v.toScreen(state.points.get(f));
       ctx.beginPath();
       ctx.arc(s.x, s.y, inLoupe ? 3 : 4, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffd23d';
+      ctx.fillStyle = '#ffd60a';
       ctx.fill();
       ctx.lineWidth = 1.5;
       ctx.strokeStyle = '#1d1b3a';
@@ -86,7 +89,7 @@ export function initTracking(app) {
     if (cur) {
       const s = v.toScreen(cur);
       ctx.lineWidth = 2.5;
-      ctx.strokeStyle = '#ff3b8b';
+      ctx.strokeStyle = '#ff375f';
       ctx.beginPath();
       ctx.arc(s.x, s.y, 11, 0, Math.PI * 2);
       ctx.moveTo(s.x - 17, s.y); ctx.lineTo(s.x - 5, s.y);
@@ -101,7 +104,7 @@ export function initTracking(app) {
         const s = v.toScreen(c), half = state.boxSize * v.k / 2;
         ctx.setLineDash([6, 4]);
         ctx.lineWidth = 2;
-        ctx.strokeStyle = running ? '#17b978' : '#ffffff';
+        ctx.strokeStyle = running ? '#30d158' : '#ffffff';
         ctx.strokeRect(s.x - half, s.y - half, half * 2, half * 2);
         ctx.setLineDash([]);
       }
@@ -122,34 +125,32 @@ export function initTracking(app) {
 
   function stop() {
     running = false;
-    autoRun.textContent = '▶ Продолжить';
-    autoRun.classList.remove('accent');
-    autoRun.classList.add('primary');
+    autoRun.textContent = 'Resume';
+    autoRun.classList.remove('running');
   }
 
   async function run() {
     const start = video.current;
     const p0 = state.points.get(start);
-    if (!inRange(start)) { app.toast('Этот кадр вне выбранного диапазона'); return; }
-    if (!p0) { app.toast('Сначала тапните по объекту'); return; }
+    if (!inRange(start)) { app.toast('This frame is outside the selected range'); return; }
+    if (!p0) { app.toast('Tap the object first'); return; }
     let img = grabber.grab();
     const s = img.scale;
     tracker.init(img, p0.x * s, p0.y * s, state.boxSize * s);
     if (tracker.contrast < 4) {
-      setStatus('Объект почти не отличается от фона. Увеличьте рамку или выберите другой объект', 'bad');
+      setStatus('The object blends into the background. Try a larger box.', 'bad');
       return;
     }
     running = true;
-    autoRun.textContent = '⏸ Стоп';
-    autoRun.classList.add('accent');
-    autoRun.classList.remove('primary');
+    autoRun.textContent = 'Stop';
+    autoRun.classList.add('running');
     let f = start;
     while (running) {
       const next = f + state.trackStep;
       if (next > state.end) {
         stop();
-        autoRun.textContent = '▶ Отследить';
-        setStatus('✓ Готово: дошли до конечного кадра', 'good');
+        autoRun.textContent = 'Start Tracking';
+        setStatus('Done — tracked to the end frame.', 'good');
         break;
       }
       const { p, v } = predict(next);
@@ -160,7 +161,7 @@ export function initTracking(app) {
       const m = tracker.match(img, p.x * s, p.y * s, R);
       if (m.score < LOST_SCORE) {
         stop();
-        setStatus(`⚠ Объект потерян на кадре ${next}. Тапните по нему и нажмите «Продолжить»`, 'bad');
+        setStatus(`Lost the object at frame ${next}. Tap it, then tap Resume.`, 'bad');
         lastTap = p;
         viewer.render();
         break;
@@ -168,7 +169,7 @@ export function initTracking(app) {
       state.points.set(next, { x: m.x / s, y: m.y / s });
       if (m.score > 0.8) tracker.update(img, m.x, m.y);
       f = next;
-      setStatus(`Отслеживание… кадр ${f} из ${state.end}`);
+      setStatus(`Tracking… frame ${f} of ${state.end}`);
       viewer.ensureVisible(state.points.get(f));
       updateCount();
       viewer.render();
@@ -179,7 +180,7 @@ export function initTracking(app) {
 
   document.querySelectorAll('#modeTabs button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
   autoRun.addEventListener('click', () => {
-    if (running) { stop(); setStatus('Остановлено'); } else run();
+    if (running) { stop(); setStatus('Stopped.'); } else run();
   });
   boxSize.addEventListener('input', () => {
     state.boxSize = +boxSize.value;
@@ -192,12 +193,12 @@ export function initTracking(app) {
     viewer.render();
   });
   $('#clearPoints').addEventListener('click', () => {
-    if (!state.points.size || !confirm('Удалить все точки?')) return;
+    if (!state.points.size || !confirm('Remove all marked points?')) return;
     if (running) stop();
     state.points.clear();
     lastTap = null;
     setStatus('');
-    autoRun.textContent = '▶ Отследить';
+    autoRun.textContent = 'Start Tracking';
     updateCount();
     viewer.render();
   });
@@ -213,6 +214,7 @@ export function initTracking(app) {
       boxSize.max = Math.max(20, Math.round(minDim * 0.5));
       if (!state.boxSize) state.boxSize = Math.round(minDim * 0.08);
       boxSize.value = state.boxSize;
+      app.paintRange(boxSize);
       app.setFrameRange(state.start, state.end);
       if (!inRange(video.current)) {
         const done = [...state.points.keys()].filter(inRange);
@@ -228,7 +230,7 @@ export function initTracking(app) {
       }
       $('#delPoint').disabled = !state.points.has(video.current);
     },
-    stopAuto() { if (running) { stop(); setStatus('Остановлено'); } },
+    stopAuto() { if (running) { stop(); setStatus('Stopped.'); } },
     get running() { return running; },
     valid() {
       let n = 0;

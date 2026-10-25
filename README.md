@@ -1,61 +1,62 @@
-# Видеотрекер
+# Tracker
 
-Видеоанализ движения на уроках физики прямо в браузере телефона. Это упрощённый мобильный аналог [Tracker](https://physlets.org/tracker/).
+Video motion analysis for physics class, right in your phone's browser — a lightweight, mobile-first take on [Tracker](https://physlets.org/tracker/).
 
-Видео обрабатывается локально, на сервер ничего не отправляется. Регистрация не нужна.
+**Live:** https://vikrewww-glitch.github.io/video-tracker/
 
-## Как пользоваться
-1. **Видео:** выберите видео из галереи или снимите новое. Есть встроенный пример с броском мяча.
-2. **Калибровка:**
-   - FPS (определяется из файла автоматически);
-   - начальный и конечный кадр;
-   - масштаб по предмету известной длины;
-   - начало координат и поворот осей.
-3. **Трекинг:**
-   - вручную: тап по объекту, видео само переходит на следующий кадр;
-   - авто: один тап по объекту, дальше приложение ищет его по шаблону.
-4. **Результаты:**
-   - графики x, y, vx, vy, v, ax, ay;
-   - таблица;
-   - копирование для Excel, CSV, PNG графика.
+Everything runs locally. The video never leaves the device, and there is no sign-up.
 
-Скорость и ускорение считаются по центральной разности. Сглаживание — локальная квадратичная аппроксимация (фильтр Савицкого–Голея): для равноускоренного движения она не искажает ускорение.
+## How it works
+1. **Video**
+   - Choose a video from your library or record a new one.
+   - A built-in sample shows a ball in projectile motion.
+2. **Calibrate**
+   - The frame rate is read from the file automatically.
+   - Pick the start and end frames.
+   - Set the scale from an object of known length.
+   - Place the origin and rotate the axes.
+3. **Track**
+   - Manual: tap the object and the video advances to the next frame.
+   - Automatic: tap the object once and template matching follows it.
+4. **Results**
+   - Charts of x, y, vₓ, v_y, v, aₓ and a_y.
+   - A data table.
+   - Copy for Excel, CSV download, or save the chart as an image.
 
-## Выкладка на GitHub Pages
-Это статический сайт без сборки.
-1. Создайте репозиторий на GitHub и запушьте в него эту папку.
-2. Откройте **Settings → Pages → Build and deployment**. Выберите источник «Deploy from a branch», ветку `main`, папку `/ (root)`.
-3. Через минуту сайт будет доступен по адресу `https://<логин>.github.io/<репозиторий>/`.
+Velocity and acceleration use central differences. Smoothing is a local quadratic (Savitzky–Golay) fit, which leaves uniformly accelerated motion undistorted.
 
-Для локального запуска нужен любой статический сервер (ES-модули не работают через `file://`):
+## Deploy
+It is a static site with no build step. Push it to GitHub and enable **Settings → Pages → Deploy from a branch → `main` / root**.
+
+To run it locally, use any static server (ES modules don't load from `file://`):
 
 ```sh
-python3 -m http.server 8000   # → http://localhost:8000
+python3 -m http.server 8000
 ```
 
-## Проверка точности
-`tools/make_test_video.py` генерирует видео броска с известным g. `tools/accuracy-test.mjs` проходит все шаги в headless Chrome на эмуляции телефона и проверяет:
-- точность покадрового перехода;
-- ускорение при ручном трекинге (точные и «дрожащие» тапы);
-- ускорение при авто-трекинге;
-- отсутствие горизонтальной прокрутки.
+## Accuracy test
+- `tools/make_test_video.py` renders a projectile with a known g.
+- `tools/accuracy-test.mjs` drives the whole flow in headless Chrome on an emulated phone. It checks:
+  - frame-accurate seeking;
+  - g from manual taps (exact and jittered);
+  - g from automatic tracking;
+  - the layout (no horizontal scrolling).
 
 ```sh
-pip install numpy            # и ffmpeg
-python3 tools/make_test_video.py /tmp/throw30.mp4 --fps 30
+python3 tools/make_test_video.py /tmp/throw30.mp4 --fps 30   # needs numpy + ffmpeg
 npm i puppeteer-core
 python3 -m http.server 8765 &
-node tools/accuracy-test.mjs /tmp/throw30.mp4 /tmp/shots   # WIDTH=360 — другая ширина экрана
+node tools/accuracy-test.mjs /tmp/throw30.mp4 /tmp/shots      # WIDTH=360 for a narrower screen
 ```
 
-Результаты на видео 30 и 60 к/с, g = 9.8 м/с²:
+Typical results with g = 9.8 m/s²:
 
-| Режим | ay, м/с² |
+| Method | a_y |
 | --- | --- |
-| Авто-трекинг | −9.81 ± 0.05 |
-| Ручной трекинг, точные тапы | −9.81 |
-| Ручной трекинг, тапы с разбросом ≈ 4 мм, сильное сглаживание (30 к/с) | −9.84 |
+| Automatic tracking | −9.81 ± 0.05 m/s² |
+| Manual, exact taps | −9.82 m/s² |
+| Manual, taps with ~4 mm jitter, strong smoothing | −9.86 m/s² |
 
-## Ограничения
-- Видео HEVC (по умолчанию на iPhone) открывается в Safari, но может не открыться в Chrome на Android или Windows. В настройках камеры iPhone выберите «Наиболее совместимый» формат (H.264).
-- FPS точно читается из MP4/MOV. Для других форматов он оценивается при воспроизведении, его стоит проверить на шаге 2.
+## Notes
+- HEVC video (the iPhone default) plays in Safari but may not open in Chrome on Android or Windows. Set **Settings → Camera → Formats → Most Compatible** to record H.264.
+- The frame rate is read exactly from MP4/MOV files. For other formats it is estimated during playback, so double-check it in Calibrate.
