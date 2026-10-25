@@ -145,6 +145,17 @@ class Template {
     u.norm = Math.sqrt(su);
   }
 
+  // Центр «объектных» пикселей (с большим весом) относительно центра рамки.
+  objectCenter() {
+    let sx = 0, sy = 0, sw = 0;
+    for (let k = 0; k < this.m; k++) {
+      const w = this.w[k] > 0.5 ? this.w[k] : 0;
+      sx += w * this.dx[k]; sy += w * this.dy[k]; sw += w;
+    }
+    if (sw < 0.1 * this.m || sw > 0.9 * this.m) return null;
+    return { x: sx / sw, y: sy / sw };
+  }
+
   copyFrom(other) {
     this.w = other.w;
     this.set(other.raw.slice());
@@ -213,9 +224,21 @@ const toHalf = v => (v - 0.5) / 2;
 const fromHalf = v => v * 2 + 0.5;
 
 export class TemplateTracker {
-  // cx, cy, size — в пикселях обработки.
+  // cx, cy, size — в пикселях обработки. Возвращает центр объекта (может немного сместиться:
+  // рамка центрируется на самом объекте, а не на месте тапа).
   init(img, cx, cy, size) {
     this.n = Math.max(9, Math.round(size) | 1);
+    for (let pass = 0; pass < 2; pass++) {
+      this._build(img, cx, cy);
+      const c = this.fixed.objectCenter();
+      if (!c || Math.hypot(c.x, c.y) < 1 || Math.hypot(c.x, c.y) > 0.35 * this.n) break;
+      cx += c.x;
+      cy += c.y;
+    }
+    return { x: cx, y: cy };
+  }
+
+  _build(img, cx, cy) {
     this.fixed = new Template(this.n);
     this.fixed.set(this.fixed.read(img, cx, cy));
     this.contrast = this.fixed.contrast;

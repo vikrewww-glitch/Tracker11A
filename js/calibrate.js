@@ -1,7 +1,19 @@
 // Шаг 2: FPS, начальный/конечный кадр, масштаб и система координат.
-import { hitHandles } from './viewer.js?v=20261025101616';
-import { pixelsPerMeter } from './physics.js?v=20261025101616';
-import { t, num } from './i18n.js?v=20261025101616';
+import { hitHandles } from './viewer.js?v=20261025102439';
+import { pixelsPerMeter } from './physics.js?v=20261025102439';
+import { t, num, getLang } from './i18n.js?v=20261025102439';
+
+// Число из поля ввода: принимаем и запятую, и точку.
+export function parseNum(str) {
+  const v = parseFloat(String(str).trim().replace(/\s/g, '').replace(',', '.'));
+  return isFinite(v) ? v : NaN;
+}
+
+// Число для поля ввода в формате текущего языка.
+function fieldNum(v) {
+  const s = String(v);
+  return getLang() === 'pt' ? s.replace('.', ',') : s;
+}
 
 const AXIS_PX = 90; // длина стрелки оси на экране
 const BLUE = '#0a84ff';
@@ -159,12 +171,13 @@ export function initCalibration(app) {
     if (document.activeElement !== angleInput) {
       let deg = axes.angle * 180 / Math.PI;
       deg = ((deg % 360) + 540) % 360 - 180;
-      angleInput.value = Math.round(deg * 10) / 10;
+      angleInput.value = fieldNum(Math.round(deg * 10) / 10);
     }
     document.querySelectorAll('#yDir button').forEach(b => b.classList.toggle('on', (b.dataset.ydir === 'down') === !!axes.flipY));
     $('#startVal').textContent = state.start;
     $('#endVal').textContent = state.end;
-    if (document.activeElement !== fpsInput) fpsInput.value = Math.round(video.fps * 1000) / 1000;
+    if (document.activeElement !== fpsInput) fpsInput.value = fieldNum(Math.round(video.fps * 1000) / 1000);
+    if (document.activeElement !== lengthInput) lengthInput.value = state.cal.scale.length ? fieldNum(state.cal.scale.length) : '';
     const notes = {
       file: t(video.variableFps ? 'fps.fileVar' : 'fps.file'),
       estimate: t('fps.estimate'),
@@ -184,7 +197,7 @@ export function initCalibration(app) {
   document.querySelectorAll('#calTabs button').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
 
   fpsInput.addEventListener('change', () => {
-    const f = parseFloat(fpsInput.value.replace(',', '.'));
+    const f = parseNum(fpsInput.value);
     if (!(f >= 1 && f <= 1000)) { updateFields(); app.toast(t('toast.fpsRange')); return; }
     const t0 = video.timeOf(state.start), t1 = video.timeOf(state.end);
     const cur = video.timeOf(Math.max(0, video.current));
@@ -200,14 +213,14 @@ export function initCalibration(app) {
   });
 
   lengthInput.addEventListener('input', () => {
-    const v = parseFloat(lengthInput.value.replace(',', '.'));
+    const v = parseNum(lengthInput.value);
     state.cal.scale.length = v > 0 ? v : 0;
     updateFields();
     app.changed();
   });
 
   angleInput.addEventListener('change', () => {
-    const v = parseFloat(angleInput.value.replace(',', '.'));
+    const v = parseNum(angleInput.value);
     if (isFinite(v)) state.cal.axes.angle = v * Math.PI / 180;
     updateFields();
     app.changed();
@@ -240,7 +253,7 @@ export function initCalibration(app) {
 
   return {
     enter() {
-      lengthInput.value = state.cal.scale.length || '';
+      lengthInput.value = state.cal.scale.length ? fieldNum(state.cal.scale.length) : '';
       viewer.mode = 'pan';
       viewer.hit = s => hitHandles(viewer, s, handles());
       viewer.onDrag = onDrag;

@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=20261025101616">
+  <link rel="stylesheet" href="css/style.css?v=20261025102439">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -100,7 +100,7 @@
         <div class="list">
           <div class="row">
             <label class="row-label" for="fpsInput" data-i18n="cal.fps">Frame rate</label>
-            <input type="number" id="fpsInput" inputmode="decimal" min="1" max="1000" step="0.01">
+            <input type="text" class="num" id="fpsInput" inputmode="decimal" autocomplete="off" spellcheck="false">
             <span class="unit">fps</span>
           </div>
           <div class="row">
@@ -118,7 +118,7 @@
         <div class="list">
           <div class="row">
             <label class="row-label" for="lengthInput" data-i18n="cal.length">Reference length</label>
-            <input type="number" id="lengthInput" inputmode="decimal" min="0" step="0.01" value="1">
+            <input type="text" class="num" id="lengthInput" inputmode="decimal" autocomplete="off" spellcheck="false" value="1">
             <span class="unit">m</span>
           </div>
         </div>
@@ -129,7 +129,7 @@
           <div class="row">
             <label class="row-label" for="angleInput" data-i18n="cal.rotation">Rotation</label>
             <button class="btn plain small" data-angle="0" data-i18n="cal.reset">Reset</button>
-            <input type="number" id="angleInput" inputmode="decimal" step="1" value="0">
+            <input type="text" class="num" id="angleInput" inputmode="decimal" autocomplete="off" spellcheck="false" value="0">
             <span class="unit">°</span>
           </div>
           <div class="row">
@@ -271,6 +271,6 @@
 
   <video id="video" playsinline muted preload="auto"></video>
   <div class="toast" id="toast"></div>
-  <script type="module" src="js/app.js?v=20261025101616"></script>
+  <script type="module" src="js/app.js?v=20261025102439"></script>
 </body>
 </html>

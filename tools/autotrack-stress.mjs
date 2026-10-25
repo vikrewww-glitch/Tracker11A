@@ -44,9 +44,14 @@ async function tapTruth(f) {
     const a = window.__app, r = a.viewer.canvas.getBoundingClientRect(), q = a.viewer.toScreen(p);
     return { x: r.left + q.x, y: r.top + q.y };
   }, truth.frames[f]);
-  await page.touchscreen.tap(s.x, s.y);
-  // Точная стартовая точка, как после увеличения лупой.
-  await page.evaluate((f, p) => window.__app.state.points.set(f, { x: p.x, y: p.y }), f, truth.frames[f]);
+  // TAP_OFFSET=dx,dy — неточный тап (в пикселях видео); иначе точная стартовая точка, как после лупы.
+  const off = (process.env.TAP_OFFSET || '').split(',').map(Number);
+  if (off.length === 2) {
+    await page.evaluate((f, p) => window.__app.state.points.set(f, p), f, { x: truth.frames[f].x + off[0], y: truth.frames[f].y + off[1] });
+  } else {
+    await page.touchscreen.tap(s.x, s.y);
+    await page.evaluate((f, p) => window.__app.state.points.set(f, { x: p.x, y: p.y }), f, truth.frames[f]);
+  }
 }
 
 await page.evaluate(() => { window.__trackLog = []; });

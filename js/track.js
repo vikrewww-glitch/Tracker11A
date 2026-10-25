@@ -1,7 +1,7 @@
 // Шаг 3: ручной и автоматический трекинг объекта.
-import { drawAxes } from './calibrate.js?v=20261025101616';
-import { FrameGrabber, TemplateTracker } from './autotrack.js?v=20261025101616';
-import { t } from './i18n.js?v=20261025101616';
+import { drawAxes } from './calibrate.js?v=20261025102439';
+import { FrameGrabber, TemplateTracker } from './autotrack.js?v=20261025102439';
+import { t } from './i18n.js?v=20261025102439';
 
 const ACCEPT = 0.5;     // минимальная корреляция, чтобы принять точку
 const REACQUIRE = 0.6;  // после пропуска нужна уверенность повыше
@@ -165,7 +165,8 @@ export function initTracking(app) {
     if (!p0) { app.toast(t('toast.tapFirst')); return; }
     let img = grabber.grab();
     const s = img.scale;
-    tracker.init(img, p0.x * s, p0.y * s, state.boxSize * s);
+    const c0 = tracker.init(img, p0.x * s, p0.y * s, state.boxSize * s);
+    state.points.set(start, { x: c0.x / s, y: c0.y / s });
     if (tracker.contrast < 4) {
       setStatus('status.lowContrast', null, 'bad');
       return;

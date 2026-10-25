@@ -1,12 +1,12 @@
 // Мастер шагов 1 → 4 и общее состояние приложения.
-import { VideoSource } from './video.js?v=20261025101616';
-import { Viewer } from './viewer.js?v=20261025101616';
-import { initCalibration, defaultCalibration } from './calibrate.js?v=20261025101616';
-import { initTracking } from './track.js?v=20261025101616';
-import { initResults } from './results.js?v=20261025101616';
-import { toWorld } from './physics.js?v=20261025101616';
-import { tableText } from './export.js?v=20261025101616';
-import { t, num, applyDom, setLang, getLang, onLang } from './i18n.js?v=20261025101616';
+import { VideoSource } from './video.js?v=20261025102439';
+import { Viewer } from './viewer.js?v=20261025102439';
+import { initCalibration, defaultCalibration } from './calibrate.js?v=20261025102439';
+import { initTracking } from './track.js?v=20261025102439';
+import { initResults } from './results.js?v=20261025102439';
+import { toWorld } from './physics.js?v=20261025102439';
+import { tableText } from './export.js?v=20261025102439';
+import { t, num, applyDom, setLang, getLang, onLang } from './i18n.js?v=20261025102439';
 
 const $ = s => document.querySelector(s);
 
@@ -150,7 +150,7 @@ viewerEl.querySelectorAll('[data-zoom]').forEach(b => b.addEventListener('click'
 
 document.addEventListener('keydown', e => {
   if (!(state.step === 2 || state.step === 3)) return;
-  if (e.target.matches('input[type=number], select, textarea')) return;
+  if (e.target.matches('input, select, textarea')) return;
   if (e.key === 'ArrowLeft') { e.preventDefault(); stepFrame(-1); }
   if (e.key === 'ArrowRight') { e.preventDefault(); stepFrame(1); }
 });
