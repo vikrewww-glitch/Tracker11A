@@ -2,16 +2,15 @@
 
 export const DICT = {
   en: {
-    'doc.title': 'Tracker — Motion Analysis',
+    'doc.title': 'Tracker11A — Motion Analysis',
     'lang.switch': 'Language',
     'step.video': 'Video',
     'step.calibrate': 'Calibrate',
     'step.track': 'Track',
     'step.results': 'Results',
 
-    'hero.eyebrow': 'Physics motion analysis',
     'hero.title': 'See motion<br>in numbers.',
-    'hero.lead': 'Track a moving object frame by frame. Position, velocity and acceleration are computed on your device — your video never leaves it.',
+    'hero.lead': 'Video motion analysis for physics class. Track a moving object frame by frame. Position, velocity and acceleration are computed on your device — your video never leaves it.',
     'src.choose': 'Choose Video',
     'src.choose.sub': 'From your library or files',
     'src.record': 'Record Video',
@@ -139,16 +138,15 @@ export const DICT = {
   },
 
   pt: {
-    'doc.title': 'Tracker — Análise de Movimento',
+    'doc.title': 'Tracker11A — Análise de Movimento',
     'lang.switch': 'Idioma',
     'step.video': 'Vídeo',
     'step.calibrate': 'Calibrar',
     'step.track': 'Rastrear',
     'step.results': 'Resultados',
 
-    'hero.eyebrow': 'Análise de movimento em Física',
     'hero.title': 'Veja o movimento<br>em números.',
-    'hero.lead': 'Acompanhe um objeto em movimento, fotograma a fotograma. A posição, a velocidade e a aceleração são calculadas no seu dispositivo — o vídeo nunca sai dele.',
+    'hero.lead': 'Análise de movimento em vídeo para as aulas de Física. Acompanhe um objeto em movimento, fotograma a fotograma. A posição, a velocidade e a aceleração são calculadas no seu dispositivo — o vídeo nunca sai dele.',
     'src.choose': 'Escolher vídeo',
     'src.choose.sub': 'Da galeria ou dos ficheiros',
     'src.record': 'Gravar vídeo',

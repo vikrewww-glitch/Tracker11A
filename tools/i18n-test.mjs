@@ -63,12 +63,12 @@ async function visibleText() {
 
 async function scan(label, lang) {
   const other = lang === 'pt' ? 'en' : 'pt';
-  const text = (await visibleText()).replace(/Tracker/g, '');
+  const text = (await visibleText()).replace(/Tracker11A/g, '');
   const bad = fragments(other, lang).filter(f => text.includes(f));
   let words = [];
   if (lang === 'pt') {
     // Разрешены имена собственные и обозначения.
-    const cleaned = text.replace(/Google Sheets|Excel|CSV|Tracker|fps|px/g, '');
+    const cleaned = text.replace(/Google Sheets|Excel|CSV|Tracker11A|fps|px/g, '');
     words = [...new Set((cleaned.match(new RegExp(EN_WORDS.source, 'gi')) || []))];
   }
   check(bad.length === 0 && words.length === 0, `${label}: нет текста на другом языке${bad.length ? ' — ' + bad.slice(0, 5).join(' | ') : ''}${words.length ? ' — слова: ' + words.join(', ') : ''}`);
