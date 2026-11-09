@@ -18,6 +18,7 @@ Everything runs locally. The video never leaves the device, and there is no sign
    - Pick the start and end frames.
    - Set the scale from an object of known length.
    - Place the origin and rotate the axes.
+   - Optionally enter the mass of the moving object to get forces.
 3. **Track**
    - Manual: tap the object and the video advances to the next frame.
    - Automatic: tap the object once and template matching follows it.
@@ -27,9 +28,19 @@ Everything runs locally. The video never leaves the device, and there is no sign
      - If the object is briefly hidden or blurred, it skips up to 4 frames and picks the object up again.
      - **End Here** finishes the range when the motion is over.
 4. **Results**
-   - Charts of x, y, vₓ, v_y, v, aₓ and a_y.
+   - Charts of x, y, vₓ, v_y, v, aₓ and a_y — plus Fₓ, F_y and F = m·a in newtons when the mass is set.
+   - **Trendline** (least squares, like Excel): quadratic for x and y, linear for the rest. Shows the equation and R².
+     - For x(t)/y(t) the quadratic trend gives the acceleration a = 2·A, with no differentiation noise. The same value appears as “Trend aₓ” on the acceleration and force tabs.
    - A data table.
-   - Copy for Excel, CSV download, or save the chart as an image.
+   - Copy for Excel, CSV download (both include the trend equations and R²), or save the chart as an image.
+5. **Experiment** — friction force versus mass, for a lab.
+   - Push an object so it slides to a stop; record one video per mass.
+   - On Results, **Add to Experiment** and choose only the sliding after the push. a = 2·A from the quadratic trend of x(t), Fa = m·|a|.
+   - The table (editable), a chart of Fa against m with a trendline through the origin (or with an intercept), R², and μ = k / 9.8 with a short conclusion.
+   - Stored in the browser (localStorage), so it survives loading the next video.
+6. **History**
+   - Every finished tracking is saved automatically in IndexedDB: name, date, a thumbnail, calibration, mass, points and samples. The video itself is not stored.
+   - Open the results again without re-tracking, rename or delete entries, add several to the experiment at once, and export/import them as a JSON file.
 
 Velocity and acceleration use central differences. Smoothing is a local quadratic (Savitzky–Golay) fit, which leaves uniformly accelerated motion undistorted.
 
@@ -61,6 +72,7 @@ node tools/accuracy-test.mjs /tmp/throw30.mp4 /tmp/shots      # WIDTH=360 for a 
 
 Two more tests:
 - `node tools/autotrack-stress.mjs <video>` counts how often automatic tracking stops and how far it drifts. Use it on a hard video: `make_test_video.py … --blur 6 --clutter --flicker 0.12 --spin 1.5 --occluder 640`.
+- `node tools/features-test.mjs <dir>` checks the trendline, forces, experiment and history end to end. Make the videos with `for v in 1.4 1.6 1.8 2.0; do python3 tools/make_slide_video.py <dir>/s$v.mp4 --v0 $v; done` (a block braking with μ = 0.31); the test expects μ = 0.31 ± 0.015.
 - `node tools/i18n-test.mjs` walks every screen in Portuguese and English and fails if any text from the other language is left.
 
 Typical results with g = 9.8 m/s²:

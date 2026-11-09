@@ -8,7 +8,13 @@ export const COLUMNS = [
   { key: 'vy', label: 'vy (m/s)', dec: 3 },
   { key: 'ax', label: 'ax (m/s²)', dec: 3 },
   { key: 'ay', label: 'ay (m/s²)', dec: 3 },
+  { key: 'Fx', label: 'Fx (N)', dec: 4 },
+  { key: 'Fy', label: 'Fy (N)', dec: 4 },
+  { key: 'F', label: 'F (N)', dec: 4 },
 ];
+
+// Колонки, для которых в рядах есть данные (силы — только если указана масса).
+export const columnsFor = series => COLUMNS.filter(c => series[c.key]);
 
 export function fmt(v, dec, comma) {
   if (v == null || !isFinite(v)) return '';
@@ -16,10 +22,19 @@ export function fmt(v, dec, comma) {
   return comma ? s.replace('.', ',') : s;
 }
 
+// Число с заданным числом значащих цифр, без экспоненты.
+export function sig(v, digits, comma) {
+  if (v == null || !isFinite(v)) return '';
+  if (v === 0) return '0';
+  const dec = Math.max(0, Math.min(8, digits - 1 - Math.floor(Math.log10(Math.abs(v)))));
+  return fmt(v, dec, comma);
+}
+
 export function tableText(series, sep, comma) {
-  const lines = [COLUMNS.map(c => c.label).join(sep)];
+  const cols = columnsFor(series);
+  const lines = [cols.map(c => c.label).join(sep)];
   for (let i = 0; i < series.t.length; i++) {
-    lines.push(COLUMNS.map(c => fmt(series[c.key][i], c.dec, comma)).join(sep));
+    lines.push(cols.map(c => fmt(series[c.key][i], c.dec, comma)).join(sep));
   }
   return lines.join('\r\n');
 }

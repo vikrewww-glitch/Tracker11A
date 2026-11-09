@@ -25,6 +25,8 @@ page.on('pageerror', e => errors.push(e.message));
 page.on('dialog', d => { dialogs.push(d.message()); d.accept(); });
 const dialogs = [];
 await page.goto(URL_, { waitUntil: 'networkidle0' });
+await page.evaluate(() => localStorage.clear());
+await page.reload({ waitUntil: 'networkidle0' });
 
 const dict = await page.evaluate(async () => {
   const src = [...document.scripts].find(s => s.src.includes('app.js')).src;
@@ -63,8 +65,12 @@ async function visibleText() {
 
 async function scan(label, lang) {
   const other = lang === 'pt' ? 'en' : 'pt';
-  const text = (await visibleText()).replace(/Tracker11A/g, '');
-  const bad = fragments(other, lang).filter(f => text.includes(f));
+  let text = (await visibleText()).replace(/Tracker11A/g, '');
+  // Названия сохранённых трекингов — данные пользователя, а не интерфейс.
+  for (const n of await page.$$eval('#histPickList b, #expTable .name', e => e.map(x => x.textContent || x.value))) text = text.split(n).join('');
+  // Целые слова: «Cancel» не должно срабатывать на «Cancelar».
+  const esc = f => f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const bad = fragments(other, lang).filter(f => new RegExp(`(^|[^\\p{L}])${esc(f)}($|[^\\p{L}])`, 'u').test(text));
   let words = [];
   if (lang === 'pt') {
     // Разрешены имена собственные и обозначения.
@@ -131,6 +137,18 @@ async function walk(lang) {
   await page.click('#copyBtn');
   await sleep(100);
   await scan('Шаг 4 — тост копирования', lang);
+  await page.click('#trendOn');
+  await page.click('#qTabs [data-q="ay"]');
+  await scan('Шаг 4 — линия тренда', lang);
+  await page.click('#steps [data-step="5"]');
+  await sleep(300);
+  await scan('Эксперимент', lang);
+  await page.click('#expFromHist');
+  await sleep(300);
+  await scan('Эксперимент — выбор из истории', lang);
+  await page.click('#steps [data-step="6"]');
+  await sleep(300);
+  await scan('История', lang);
   await page.click('#steps [data-step="1"]');
   await sleep(200);
 }

@@ -1,6 +1,6 @@
 // Простой точечно-линейный график на Canvas.
 
-const LIGHT = { bg: '#ffffff', grid: 'rgba(60,60,67,0.10)', zero: 'rgba(60,60,67,0.28)', text: '#1d1d1f', text2: '#86868b' };
+const LIGHT = { bg: '#ffffff', grid: 'rgba(60,60,67,0.10)', zero: 'rgba(60,60,67,0.28)', text: '#1d1d1f', text2: '#86868b', trend: '#ff9500', band: 'rgba(0,113,227,0.08)' };
 const FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Segoe UI", Roboto, sans-serif';
 
 function niceStep(range, target) {
@@ -26,7 +26,9 @@ export function formatTick(v, step, comma = false) {
   return comma ? s.replace('.', ',') : s;
 }
 
-// opts: { width, height, dpr, xs, ys, xLabel, yLabel, color, title, highlight, theme, font, comma }
+// opts: { width, height, dpr, xs, ys, xLabel, yLabel, color, title, subtitle, highlight, theme, font, comma,
+//         trend (функция x → y), band ([x0, x1] — выделенный участок), scatter (без соединительной линии),
+//         zero (оси начинаются с нуля) }
 export function drawChart(canvas, opts) {
   const { width, height, dpr = 1, xs, ys, color = '#0071e3' } = opts;
   const th = { ...LIGHT, ...(opts.theme || {}) };
@@ -43,12 +45,17 @@ export function drawChart(canvas, opts) {
   const pts = [];
   for (let i = 0; i < xs.length; i++) if (ys[i] != null && isFinite(ys[i])) pts.push({ x: xs[i], y: ys[i], i });
 
-  const top = opts.title ? fs * 4.2 : fs * 2.4;
+  const top = (opts.title ? fs * 4.2 : fs * 2.4) + (opts.subtitle ? fs * 1.6 : 0);
   const left = fs * 4.4, right = fs * 1.4, bottom = fs * 3.2;
   const pw = width - left - right, ph = height - top - bottom;
 
-  let [x0, x1] = niceRange(Math.min(...xs), Math.max(...xs));
-  let [y0, y1] = pts.length ? niceRange(Math.min(...pts.map(p => p.y)), Math.max(...pts.map(p => p.y))) : [0, 1];
+  const xv = pts.length ? pts.map(p => p.x) : xs;
+  let [x0, x1] = xv.length ? niceRange(Math.min(...xv, ...(opts.zero ? [0] : [])), Math.max(...xv)) : [0, 1];
+  let [y0, y1] = pts.length ? niceRange(Math.min(...pts.map(p => p.y), ...(opts.zero ? [0] : [])), Math.max(...pts.map(p => p.y))) : [0, 1];
+  if (opts.zero) {
+    if (x0 < 0 && Math.min(...xv) >= 0) x0 = 0;
+    if (y0 < 0 && pts.every(p => p.y >= 0)) y0 = 0;
+  }
   if (y0 > 0 && y0 < (y1 - y0) * 0.5) y0 = 0;
   if (y1 < 0 && -y1 < (y1 - y0) * 0.5) y1 = 0;
   const X = v => left + (v - x0) / (x1 - x0) * pw;
@@ -60,6 +67,17 @@ export function drawChart(canvas, opts) {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
     ctx.fillText(opts.title, left, fs * 2);
+    if (opts.subtitle) {
+      ctx.fillStyle = th.text2;
+      ctx.font = `400 ${fs}px ${FONT}`;
+      ctx.fillText(opts.subtitle, left, fs * 3.7);
+    }
+  }
+
+  if (opts.band) {
+    const a = Math.max(x0, Math.min(...opts.band)), b = Math.min(x1, Math.max(...opts.band));
+    ctx.fillStyle = th.band;
+    ctx.fillRect(X(a), top, Math.max(1, X(b) - X(a)), ph);
   }
 
   // Горизонтальная сетка и подписи значений.
@@ -102,21 +120,38 @@ export function drawChart(canvas, opts) {
   ctx.strokeStyle = color;
   ctx.lineWidth = Math.max(1.5, fs / 6);
   ctx.lineJoin = 'round';
-  ctx.globalAlpha = 0.5;
-  ctx.beginPath();
-  let started = false;
-  for (let i = 0; i < xs.length; i++) {
-    if (ys[i] == null) { started = false; continue; }
-    if (!started) { ctx.moveTo(X(xs[i]), Y(ys[i])); started = true; } else ctx.lineTo(X(xs[i]), Y(ys[i]));
+  if (!opts.scatter) {
+    ctx.globalAlpha = opts.trend ? 0.25 : 0.5;
+    ctx.beginPath();
+    let started = false;
+    for (let i = 0; i < xs.length; i++) {
+      if (ys[i] == null) { started = false; continue; }
+      if (!started) { ctx.moveTo(X(xs[i]), Y(ys[i])); started = true; } else ctx.lineTo(X(xs[i]), Y(ys[i]));
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
   }
-  ctx.stroke();
-  ctx.globalAlpha = 1;
   ctx.fillStyle = color;
   const r = Math.max(2.5, fs / 4.2);
   for (const p of pts) {
     ctx.beginPath();
     ctx.arc(X(p.x), Y(p.y), r, 0, Math.PI * 2);
     ctx.fill();
+  }
+  if (opts.trend) {
+    // Линия тренда — поверх точек, по всей ширине графика (на выделенном участке, если он задан).
+    const [a, b] = opts.band ? [Math.min(...opts.band), Math.max(...opts.band)]
+      : opts.zero ? [x0, x1] : [Math.min(...xv), Math.max(...xv)];
+    ctx.strokeStyle = th.trend;
+    ctx.lineWidth = Math.max(2, fs / 5);
+    ctx.setLineDash([fs * 0.6, fs * 0.4]);
+    ctx.beginPath();
+    for (let k = 0; k <= 120; k++) {
+      const x = a + (b - a) * k / 120, y = opts.trend(x);
+      if (k) ctx.lineTo(X(x), Y(y)); else ctx.moveTo(X(x), Y(y));
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
   ctx.restore();
 

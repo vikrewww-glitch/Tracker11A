@@ -181,7 +181,10 @@ for (const q of ['x', 'y', 'vy', 'ay']) {
 }
 // Экспорт: текст для Excel.
 const tsv = await page.evaluate(() => window.__app.exportText('\t', true));
-const rows = tsv.split('\r\n');
+// Таблица данных — до пустой строки; ниже идут уравнения трендов.
+const [table, trends = ''] = tsv.split('\r\n\r\n');
+const rows = table.split('\r\n');
+check(/^y \(m\)\tQuadratic\ty = -4,9\d*t² \+ /m.test(trends), 'Уравнение тренда y(t) в экспорте');
 check(rows[0] === 't (s)\tx (m)\ty (m)\tvx (m/s)\tvy (m/s)\tax (m/s²)\tay (m/s²)', 'Заголовок таблицы для Excel');
 check(rows.length === expectN + 1, `Строк данных: ${rows.length - 1}`);
 console.log('  ' + rows.slice(0, 4).join('\n  '));

@@ -1,12 +1,14 @@
 // Мастер шагов 1 → 4 и общее состояние приложения.
-import { VideoSource } from './video.js?v=20261025111844';
-import { Viewer } from './viewer.js?v=20261025111844';
-import { initCalibration, defaultCalibration } from './calibrate.js?v=20261025111844';
-import { initTracking } from './track.js?v=20261025111844';
-import { initResults } from './results.js?v=20261025111844';
-import { toWorld } from './physics.js?v=20261025111844';
-import { tableText } from './export.js?v=20261025111844';
-import { t, num, applyDom, setLang, getLang, onLang } from './i18n.js?v=20261025111844';
+import { VideoSource } from './video.js?v=20261109154903';
+import { Viewer } from './viewer.js?v=20261109154903';
+import { initCalibration, defaultCalibration } from './calibrate.js?v=20261109154903';
+import { initTracking } from './track.js?v=20261109154903';
+import { initResults } from './results.js?v=20261109154903';
+import { initExperiment } from './experiment.js?v=20261109154903';
+import { initHistory, putTrack, getTrack } from './history.js?v=20261109154903';
+import { toWorld } from './physics.js?v=20261109154903';
+import { tableText } from './export.js?v=20261109154903';
+import { t, num, applyDom, setLang, getLang, onLang } from './i18n.js?v=20261109154903';
 
 const $ = s => document.querySelector(s);
 
@@ -22,6 +24,9 @@ const state = {
   smoothing: 'none',
   quantity: 'y',
   comma: false,
+  mass: 0,             // кг; 0 — не указана
+  historyId: null,     // запись истории для текущего видео
+  archived: null,      // открытая из истории запись (результаты без видео)
 };
 
 const video = new VideoSource($('#video'));
@@ -64,15 +69,27 @@ const app = {
   },
   // Точки в метрах и секундах, отсортированные по времени.
   samples() {
+    if (state.archived) return state.archived.samples;
     const t0 = video.timeOf(state.start);
     return [...state.points.keys()]
       .filter(f => f >= state.start && f <= state.end)
       .sort((a, b) => a - b)
       .map(f => ({ frame: f, t: video.timeOf(f) - t0, ...toWorld(state.points.get(f), state.cal) }));
   },
+  mass: () => (state.archived ? state.archived.mass : state.mass),
+  dataName: () => (state.archived ? state.archived.name : video.name),
   changed() {
     viewer.render();
     refreshNav();
+  },
+  tracked() { saveHistory(); },
+  openArchived(rec) {
+    state.archived = rec;
+    goStep(4);
+  },
+  closeArchived() {
+    state.archived = null;
+    goStep(canEnter(4) ? 4 : 6);
   },
 };
 window.__app = app; // для отладки и автотестов
@@ -80,9 +97,77 @@ window.__app = app; // для отладки и автотестов
 const calibration = initCalibration(app);
 const tracking = initTracking(app);
 const results = initResults(app);
-const steps = { 2: calibration, 3: tracking, 4: results };
+const experiment = initExperiment(app);
+const history = initHistory(app);
+const steps = { 2: calibration, 3: tracking, 4: results, 5: experiment, 6: history };
 app.resultsSeries = () => results.series;
-app.exportText = (sep, comma) => tableText(results.series, sep, comma);
+app.exportText = (sep, comma) => results.exportText(sep, comma);
+
+// ---------- История ----------
+
+// Первый кадр диапазона запоминаем, когда он показан, — видео в историю не сохраняется.
+let thumbFrame = null;
+function captureFrame() {
+  if (video.el.readyState < 2) return null;
+  const c = document.createElement('canvas');
+  const k = 320 / Math.max(video.width, video.height);
+  c.width = Math.round(video.width * k);
+  c.height = Math.round(video.height * k);
+  c.getContext('2d').drawImage(video.el, 0, 0, c.width, c.height);
+  return c;
+}
+
+// Миниатюра: первый кадр и траектория поверх него.
+function makeThumb() {
+  const src = thumbFrame || captureFrame();
+  if (!src) return '';
+  const c = document.createElement('canvas');
+  c.width = src.width;
+  c.height = src.height;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(src, 0, 0);
+  const k = c.width / video.width;
+  ctx.fillStyle = '#ff9500';
+  for (const [f, p] of state.points) {
+    if (f < state.start || f > state.end) continue;
+    ctx.beginPath();
+    ctx.arc(p.x * k, p.y * k, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  return c.toDataURL('image/jpeg', 0.75);
+}
+
+let saving = Promise.resolve();
+function saveHistory() {
+  if (state.archived || !video.loaded || !tracking.valid()) return saving;
+  saving = saving.then(async () => {
+    const samples = app.samples();
+    if (samples.length < 3) return;
+    const id = state.historyId || 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    let name = (video.isSample ? t('load.sampleName') : video.name).replace(/\.[^.]+$/, '');
+    if (state.historyId) {
+      const old = await getTrack(id).catch(() => null);
+      if (old) name = old.name;
+    }
+    const rec = {
+      id, name, date: Date.now(), thumb: makeThumb(),
+      video: { name: video.name, width: video.width, height: video.height, fps: video.fps, frameCount: video.frameCount },
+      cal: JSON.parse(JSON.stringify(state.cal)), start: state.start, end: state.end,
+      mass: state.mass, smoothing: state.smoothing,
+      points: [...state.points].filter(([f]) => f >= state.start && f <= state.end).sort((a, b) => a[0] - b[0]).map(([f, p]) => [f, p.x, p.y]),
+      samples: samples.map(s => ({ frame: s.frame, t: s.t, x: s.x, y: s.y })),
+    };
+    try {
+      await putTrack(rec);
+      if (!state.historyId) app.toast(t('hist.saved'));
+      state.historyId = id;
+    } catch (e) {
+      console.warn('history', e);
+    }
+  });
+  return saving;
+}
+app.saveHistory = saveHistory;
 
 // ---------- Покадровая навигация ----------
 
@@ -99,6 +184,7 @@ document.addEventListener('input', e => { if (e.target.matches('input[type=range
 function updateFrameInfo() {
   const n = video.current;
   if (n < 0) return;
+  if (n === state.start && state.step >= 2) thumbFrame = captureFrame() || thumbFrame;
   const info = $('#frameInfo');
   if (state.step === 3) {
     const time = video.timeOf(n) - video.timeOf(state.start);
@@ -158,7 +244,8 @@ document.addEventListener('keydown', e => {
 // ---------- Мастер ----------
 
 function canEnter(n) {
-  if (n <= 1) return true;
+  if (n <= 1 || n >= 5) return true;
+  if (n === 4 && state.archived) return true;
   if (!video.loaded) return false;
   if (n >= 3 && !calibration.valid()) return false;
   if (n >= 4 && !tracking.valid()) return false;
@@ -169,15 +256,15 @@ function refreshNav() {
   document.querySelectorAll('.stepbtn').forEach(b => {
     const n = +b.dataset.step;
     b.classList.toggle('active', n === state.step);
-    b.classList.toggle('done', n < state.step);
+    b.classList.toggle('done', n < state.step && n <= 4);
     b.disabled = !canEnter(n);
   });
   $('#backBtn').style.visibility = state.step > 1 ? 'visible' : 'hidden';
   const next = $('#nextBtn');
-  next.classList.toggle('hidden', state.step === 4);
+  next.classList.toggle('hidden', state.step >= 4);
   next.disabled = !canEnter(state.step + 1);
   next.textContent = t(state.step === 3 ? 'nav.results' : 'nav.continue');
-  $('#progress').style.width = state.step * 25 + '%';
+  $('#progress').style.width = Math.min(4, state.step) * 25 + '%';
 }
 
 function goStep(n) {
@@ -189,6 +276,8 @@ function goStep(n) {
   }
   const prev = steps[state.step];
   if (prev) prev.leave();
+  if (n <= 3) state.archived = null; // к видео — выходим из просмотра сохранённого трекинга
+  if (n === 4 && !state.archived) saveHistory();
   state.step = n;
   document.querySelectorAll('.step').forEach(s => s.classList.toggle('active', s.id === 'step' + n));
   if (n === 2 || n === 3) {
@@ -205,7 +294,11 @@ $('#steps').addEventListener('click', e => {
   const b = e.target.closest('.stepbtn');
   if (b) goStep(+b.dataset.step);
 });
-$('#backBtn').addEventListener('click', () => goStep(state.step - 1));
+$('#backBtn').addEventListener('click', () => {
+  if (state.step >= 5) goStep(canEnter(4) ? 4 : 1);
+  else if (state.step === 4 && state.archived) app.closeArchived();
+  else goStep(state.step - 1);
+});
 $('#nextBtn').addEventListener('click', () => goStep(state.step + 1));
 
 // ---------- Шаг 1: загрузка видео ----------
@@ -245,6 +338,10 @@ async function loadFile(file, demo = false) {
   state.end = video.frameCount - 1;
   state.points.clear();
   state.boxSize = 0;
+  state.mass = 0;
+  state.historyId = null;
+  state.archived = null;
+  thumbFrame = null;
   video.isSample = demo;
   if (demo) applyDemoCalibration();
   viewer.setVideoSize(video.width, video.height);

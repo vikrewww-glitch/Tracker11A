@@ -1,7 +1,7 @@
 // Шаг 2: FPS, начальный/конечный кадр, масштаб и система координат.
-import { hitHandles } from './viewer.js?v=20261025111844';
-import { pixelsPerMeter } from './physics.js?v=20261025111844';
-import { t, num, getLang } from './i18n.js?v=20261025111844';
+import { hitHandles } from './viewer.js?v=20261109154903';
+import { pixelsPerMeter } from './physics.js?v=20261109154903';
+import { t, num, getLang } from './i18n.js?v=20261109154903';
 
 // Число из поля ввода: принимаем и запятую, и точку.
 export function parseNum(str) {
@@ -126,6 +126,7 @@ export function initCalibration(app) {
   const fpsInput = $('#fpsInput'), fpsNote = $('#fpsNote');
   const lengthInput = $('#lengthInput'), ppmNote = $('#ppmNote');
   const angleInput = $('#angleInput');
+  const massInput = $('#massInput');
 
   function axisEnd() {
     const { ux } = axisDirs(state.cal.axes);
@@ -177,6 +178,8 @@ export function initCalibration(app) {
     $('#startVal').textContent = state.start;
     $('#endVal').textContent = state.end;
     if (document.activeElement !== fpsInput) fpsInput.value = fieldNum(Math.round(video.fps * 1000) / 1000);
+    if (document.activeElement !== massInput) massInput.value = state.mass > 0 ? fieldNum(state.mass) : '';
+    massInput.placeholder = t('cal.optional');
     if (document.activeElement !== lengthInput) lengthInput.value = state.cal.scale.length ? fieldNum(state.cal.scale.length) : '';
     const notes = {
       file: t(video.variableFps ? 'fps.fileVar' : 'fps.file'),
@@ -218,6 +221,13 @@ export function initCalibration(app) {
     updateFields();
     app.changed();
   });
+
+  // Масса необязательна: пустое поле или 0 — силы на графиках не показываются.
+  massInput.addEventListener('input', () => {
+    const v = parseNum(massInput.value);
+    state.mass = v > 0 ? v : 0;
+  });
+  massInput.addEventListener('change', updateFields);
 
   angleInput.addEventListener('change', () => {
     const v = parseNum(angleInput.value);

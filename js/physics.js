@@ -55,7 +55,8 @@ function centralDiff(t, y) {
 export const SMOOTHING = { none: 0, light: 2, strong: 4 };
 
 // samples: [{ t, x, y }] в секундах и метрах, отсортированы по t.
-export function computeSeries(samples, smoothing = 'none') {
+// mass (кг) > 0 — добавляются силы F = m·a в ньютонах.
+export function computeSeries(samples, smoothing = 'none', mass = 0) {
   const t = samples.map(s => s.t);
   const half = SMOOTHING[smoothing] || 0;
   const x = smooth(t, samples.map(s => s.x), half);
@@ -65,5 +66,72 @@ export function computeSeries(samples, smoothing = 'none') {
   const v = vx.map((a, i) => (a == null || vy[i] == null ? null : Math.hypot(a, vy[i])));
   const ax = centralDiff(t, vx);
   const ay = centralDiff(t, vy);
-  return { t, x, y, vx, vy, v, ax, ay };
+  const out = { t, frame: samples.map(s => s.frame), x, y, vx, vy, v, ax, ay };
+  if (mass > 0) {
+    out.Fx = ax.map(a => (a == null ? null : mass * a));
+    out.Fy = ay.map(a => (a == null ? null : mass * a));
+    out.F = ax.map((a, i) => (a == null || ay[i] == null ? null : mass * Math.hypot(a, ay[i])));
+  }
+  return out;
+}
+
+// Линия тренда методом наименьших квадратов: полином степени deg (1 или 2).
+// Возвращает коэффициенты c[k] при t^k и R². Точки с null пропускаются.
+// origin: прямая через начало координат (y = c1·x); R² в этом случае, как в Excel,
+// считается относительно нуля, а не среднего.
+export function polyfit(xs, ys, deg, origin = false) {
+  const px = [], py = [];
+  for (let i = 0; i < xs.length; i++) {
+    if (ys[i] != null && isFinite(ys[i]) && xs[i] != null && isFinite(xs[i])) { px.push(xs[i]); py.push(ys[i]); }
+  }
+  const n = px.length;
+  const powers = [];
+  for (let k = origin ? 1 : 0; k <= deg; k++) powers.push(k);
+  const m = powers.length;
+  if (n < Math.max(2, m)) return null;
+  // Центрирование по x улучшает обусловленность; после решения пересчитываем коэффициенты обратно.
+  const x0 = origin ? 0 : px.reduce((a, b) => a + b, 0) / n;
+  const A = Array.from({ length: m }, () => new Array(m + 1).fill(0));
+  for (let i = 0; i < n; i++) {
+    const u = px[i] - x0;
+    const row = powers.map(k => u ** k);
+    for (let r = 0; r < m; r++) {
+      for (let c = 0; c < m; c++) A[r][c] += row[r] * row[c];
+      A[r][m] += row[r] * py[i];
+    }
+  }
+  // Метод Гаусса с выбором главного элемента.
+  for (let c = 0; c < m; c++) {
+    let p = c;
+    for (let r = c + 1; r < m; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+    if (Math.abs(A[p][c]) < 1e-300) return null;
+    [A[c], A[p]] = [A[p], A[c]];
+    for (let r = 0; r < m; r++) {
+      if (r === c) continue;
+      const f = A[r][c] / A[c][c];
+      for (let k = c; k <= m; k++) A[r][k] -= f * A[c][k];
+    }
+  }
+  const b = new Array(deg + 1).fill(0); // коэффициенты по центрированной переменной u
+  powers.forEach((k, i) => { b[k] = A[i][m] / A[i][i]; });
+  // u = x − x0 → коэффициенты по x.
+  const c = new Array(deg + 1).fill(0);
+  for (let k = 0; k <= deg; k++) {
+    for (let j = 0; j <= k; j++) c[j] += b[k] * binom(k, j) * (-x0) ** (k - j);
+  }
+  const f = x => c.reduce((s, ck, k) => s + ck * x ** k, 0);
+  const mean = py.reduce((a, v) => a + v, 0) / n;
+  let ssRes = 0, ssTot = 0;
+  for (let i = 0; i < n; i++) {
+    ssRes += (py[i] - f(px[i])) ** 2;
+    ssTot += origin ? py[i] ** 2 : (py[i] - mean) ** 2;
+  }
+  const r2 = ssTot > 0 ? 1 - ssRes / ssTot : 1;
+  return { deg, coef: c, r2, n, f };
+}
+
+function binom(n, k) {
+  let r = 1;
+  for (let i = 1; i <= k; i++) r = r * (n - k + i) / i;
+  return r;
 }

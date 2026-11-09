@@ -1,7 +1,7 @@
 // Шаг 3: ручной и автоматический трекинг объекта.
-import { drawAxes } from './calibrate.js?v=20261025111844';
-import { FrameGrabber, TemplateTracker } from './autotrack.js?v=20261025111844';
-import { t } from './i18n.js?v=20261025111844';
+import { drawAxes } from './calibrate.js?v=20261109154903';
+import { FrameGrabber, TemplateTracker } from './autotrack.js?v=20261109154903';
+import { t } from './i18n.js?v=20261109154903';
 
 const ACCEPT = 0.5;     // минимальная корреляция, чтобы принять точку
 const REACQUIRE = 0.6;  // после пропуска нужна уверенность повыше
@@ -62,7 +62,7 @@ export function initTracking(app) {
     if (state.mode === 'manual') {
       const next = f + state.trackStep;
       if (next <= state.end) app.goto(next);
-      else app.toast(t('toast.lastFrame'));
+      else { app.toast(t('toast.lastFrame')); app.tracked(); }
     } else {
       lastTap = p;
       setStatus('status.selected');
@@ -194,6 +194,7 @@ export function initTracking(app) {
         stop();
         setRunLabel('track.start');
         setStatus('status.done', null, 'good');
+        app.tracked();
         break;
       }
       const pr = predict(next, seg);
@@ -288,6 +289,7 @@ export function initTracking(app) {
     app.goto(state.end);
     setRunLabel('track.start');
     setStatus('status.endSet', { n: state.end }, 'good');
+    app.tracked();
     updateCount();
   });
   boxSize.addEventListener('input', () => {

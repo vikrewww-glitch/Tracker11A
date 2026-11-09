@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=20261025111844">
+  <link rel="stylesheet" href="css/style.css?v=20261109154903">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -29,6 +29,9 @@
     <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></symbol>
     <symbol id="i-minus" viewBox="0 0 24 24"><path d="M6 12h12"/></symbol>
     <symbol id="i-fit" viewBox="0 0 24 24"><path d="M4.5 9V4.5H9M19.5 9V4.5H15M4.5 15v4.5H9M19.5 15v4.5H15"/></symbol>
+    <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9.5 3.5h5M10.5 3.5v5.2L5.3 17.6a2 2 0 0 0 1.7 2.9h10a2 2 0 0 0 1.7-2.9l-5.2-8.9V3.5M7.6 14h8.8"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 15.5v-11M7.5 9 12 4.5 16.5 9M5.5 19.5h13"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M10 4.5h4M7 7l.8 11.2a2 2 0 0 0 2 1.8h4.4a2 2 0 0 0 2-1.8L17 7"/></symbol>
   </svg>
 
@@ -40,6 +43,8 @@
         <button class="stepbtn" data-step="2" data-i18n="step.calibrate">Calibrate</button>
         <button class="stepbtn" data-step="3" data-i18n="step.track">Track</button>
         <button class="stepbtn" data-step="4" data-i18n="step.results">Results</button>
+        <button class="stepbtn extra" data-step="5" data-i18n-aria="step.experiment" aria-label="Experiment"><svg class="i"><use href="#i-flask"/></svg><span data-i18n="step.experiment">Experiment</span></button>
+        <button class="stepbtn extra" data-step="6" data-i18n-aria="step.history" aria-label="History"><svg class="i"><use href="#i-clock"/></svg><span data-i18n="step.history">History</span></button>
       </nav>
       <button class="langbtn" id="langBtn" data-i18n-aria="lang.switch" aria-label="Language"><span data-l="en">EN</span><span data-l="pt">PT</span></button>
     </div>
@@ -121,8 +126,13 @@
             <input type="text" class="num" id="lengthInput" inputmode="decimal" autocomplete="off" spellcheck="false" value="1">
             <span class="unit">m</span>
           </div>
+          <div class="row">
+            <label class="row-label" for="massInput" data-i18n="cal.mass">Mass of the moving object</label>
+            <input type="text" class="num" id="massInput" inputmode="decimal" autocomplete="off" spellcheck="false">
+            <span class="unit">kg</span>
+          </div>
         </div>
-        <p class="footnote"><span data-i18n="cal.scaleNote"></span> <span id="ppmNote"></span></p>
+        <p class="footnote"><span data-i18n="cal.scaleNote"></span> <span id="ppmNote"></span> <span data-i18n="cal.massNote"></span></p>
       </div>
       <div class="panel hidden" data-panel="axes">
         <div class="list">
@@ -193,16 +203,64 @@
         <h1 data-i18n="res.title">Results</h1>
         <p class="lead" data-i18n="res.lead"></p>
       </div>
+      <div class="filecard archbanner hidden" id="archBanner">
+        <svg class="i"><use href="#i-clock"/></svg>
+        <div><b id="archName"></b><div class="meta" id="archMeta"></div></div>
+        <button class="btn plain small" id="archClose" data-i18n="hist.close">Close</button>
+      </div>
       <div class="chips" id="qTabs"></div>
       <div class="card chartcard">
         <canvas id="chart"></canvas>
         <div class="readout" id="readout"></div>
+        <div class="trendinfo hidden" id="trendInfo"></div>
+      </div>
+      <div class="list hidden" id="addPanel">
+        <div class="row">
+          <label class="row-label" for="expName" data-i18n="exp.name">Name</label>
+          <input type="text" class="num text" id="expName" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="row">
+          <span class="row-label"><span data-i18n="exp.from">From</span><small class="opt" id="expFromVal"></small></span>
+          <input type="range" id="expFrom" min="0" max="1" value="0" data-i18n-aria="exp.from" aria-label="From">
+        </div>
+        <div class="row">
+          <span class="row-label"><span data-i18n="exp.to">To</span><small class="opt" id="expToVal"></small></span>
+          <input type="range" id="expTo" min="0" max="1" value="1" data-i18n-aria="exp.to" aria-label="To">
+        </div>
+        <div class="row">
+          <span class="row-label" data-i18n="exp.accFrom">Acceleration from</span>
+          <div class="segmented mini" id="expAxis">
+            <button data-axis="x" class="on">x(t)</button>
+            <button data-axis="y">y(t)</button>
+          </div>
+        </div>
+        <div class="row preview"><span id="expPreview"></span></div>
+        <p class="panelnote" data-i18n="exp.rangeNote"></p>
+        <div class="actions-row padded">
+          <button class="btn plain small" id="expCancel" data-i18n="exp.cancel">Cancel</button>
+          <button class="btn primary small" id="expAdd" data-i18n="exp.add">Add</button>
+        </div>
+      </div>
+      <div class="list" id="trendList">
+        <div class="row">
+          <label class="row-label" for="trendOn" data-i18n="res.trendline">Trendline</label>
+          <input type="checkbox" class="switch" id="trendOn">
+        </div>
+        <div class="row hidden" id="trendTypeRow">
+          <span class="row-label" data-i18n="res.trendType">Type</span>
+          <div class="segmented mini" id="trendType">
+            <button data-deg="1" data-i18n="res.linear">Linear</button>
+            <button data-deg="2" data-i18n="res.quadratic">Quadratic</button>
+          </div>
+        </div>
       </div>
       <div class="stats">
         <div><span id="statLabel">Mean</span><b id="statMean">—</b></div>
         <div><span data-i18n="res.min">Min</span><b id="statMin">—</b></div>
         <div><span data-i18n="res.max">Max</span><b id="statMax">—</b></div>
+        <div class="hidden trendstat" id="statTrendBox"><span id="statTrendLabel"></span><b id="statTrend">—</b></div>
       </div>
+      <button class="btn tinted block" id="addBtn"><svg class="i"><use href="#i-flask"/></svg><span data-i18n="exp.addTo">Add to Experiment</span></button>
       <div class="list">
         <div class="row">
           <span class="row-label" data-i18n="res.smoothing">Smoothing</span>
@@ -239,6 +297,77 @@
         <table id="table"></table>
       </div>
     </section>
+
+    <!-- Experiment -->
+    <section class="step" id="step5">
+      <div class="stephead">
+        <h1 data-i18n="exp.title">Experiment</h1>
+        <p class="lead" data-i18n="exp.lead"></p>
+      </div>
+      <button class="btn tinted block" id="expFromHist"><svg class="i"><use href="#i-clock"/></svg><span data-i18n="exp.fromHistory">Add from History</span></button>
+      <div class="hidden" id="histPick">
+        <h2 class="section-title" data-i18n="exp.pickTitle">Choose saved trackings</h2>
+        <div class="list" id="histPickList"></div>
+        <p class="footnote" data-i18n="exp.pickNote"></p>
+        <div class="actions-row">
+          <button class="btn plain small" id="histPickCancel" data-i18n="exp.cancel">Cancel</button>
+          <button class="btn primary small" id="histPickAdd" data-i18n="exp.addSelected">Add Selected</button>
+        </div>
+      </div>
+      <div class="card emptycard" id="expEmpty" data-i18n-html="exp.empty"></div>
+      <div class="hidden" id="expBody">
+        <div class="card exptable" id="expTable"></div>
+        <div class="card chartcard">
+          <canvas id="expChart"></canvas>
+          <div class="trendinfo" id="expEq"></div>
+        </div>
+        <div class="segmented" id="expFit">
+          <button data-fit="origin" class="on">F<sub>a</sub> = k·m</button>
+          <button data-fit="free">F<sub>a</sub> = k·m + b</button>
+        </div>
+        <div class="stats">
+          <div><span>k</span><b id="expK">—</b></div>
+          <div><span>R²</span><b id="expR2">—</b></div>
+          <div><span data-i18n="exp.mu">Friction μ</span><b id="expMu">—</b></div>
+        </div>
+        <p class="conclusion" id="expConclusion"></p>
+        <div class="list">
+          <button class="row link has-icon" id="expCopy">
+            <svg class="i accent"><use href="#i-copy"/></svg>
+            <span class="row-text"><b data-i18n="res.copy">Copy for Excel</b><small data-i18n="exp.copy.sub">Table, equation and μ</small></span>
+          </button>
+          <button class="row link has-icon" id="expPng">
+            <svg class="i accent"><use href="#i-image"/></svg>
+            <span class="row-text"><b data-i18n="res.png">Save Chart as Image</b></span>
+          </button>
+          <button class="row link has-icon destructive" id="expClear">
+            <svg class="i"><use href="#i-trash"/></svg>
+            <span class="row-text"><b data-i18n="exp.clear">Clear Experiment</b></span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- History -->
+    <section class="step" id="step6">
+      <div class="stephead">
+        <h1 data-i18n="hist.title">History</h1>
+        <p class="lead" data-i18n="hist.lead"></p>
+      </div>
+      <div class="card emptycard" id="histEmpty" data-i18n="hist.empty"></div>
+      <div class="list hidden" id="histList"></div>
+      <div class="list">
+        <button class="row link has-icon" id="histExport">
+          <svg class="i accent"><use href="#i-down"/></svg>
+          <span class="row-text"><b data-i18n="hist.export">Export History</b><small data-i18n="hist.export.sub">A JSON file for backup or another device</small></span>
+        </button>
+        <button class="row link has-icon" id="histImportBtn">
+          <svg class="i accent"><use href="#i-up"/></svg>
+          <span class="row-text"><b data-i18n="hist.import">Import History</b><small data-i18n="hist.import.sub">Add trackings from a JSON file</small></span>
+        </button>
+        <input type="file" accept="application/json,.json" id="histImport" hidden>
+      </div>
+    </section>
   </main>
 
   <footer class="navbar">
@@ -271,6 +400,6 @@
 
   <video id="video" playsinline muted preload="auto"></video>
   <div class="toast" id="toast"></div>
-  <script type="module" src="js/app.js?v=20261025111844"></script>
+  <script type="module" src="js/app.js?v=20261109154903"></script>
 </body>
 </html>
