@@ -1,8 +1,8 @@
 // История трекингов: данные (без видео) в IndexedDB — калибровка, масса, точки, отсчёты и миниатюра.
 // Экспорт/импорт в JSON-файл — для резервной копии и переноса на другое устройство.
-import { polyfit } from './physics.js?v=20261109154903';
-import { saveBlob } from './export.js?v=20261109154903';
-import { t, num, getLang } from './i18n.js?v=20261109154903';
+import { polyfit } from './physics.js?v=20261109160300';
+import { saveBlob } from './export.js?v=20261109160300';
+import { t, num, getLang } from './i18n.js?v=20261109160300';
 
 const DB = 'tracker11a', STORE = 'tracks';
 let dbp = null;

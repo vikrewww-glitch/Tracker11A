@@ -1,7 +1,7 @@
 // Шаг 3: ручной и автоматический трекинг объекта.
-import { drawAxes } from './calibrate.js?v=20261109154903';
-import { FrameGrabber, TemplateTracker } from './autotrack.js?v=20261109154903';
-import { t } from './i18n.js?v=20261109154903';
+import { drawAxes } from './calibrate.js?v=20261109160300';
+import { FrameGrabber, TemplateTracker } from './autotrack.js?v=20261109160300';
+import { t } from './i18n.js?v=20261109160300';
 
 const ACCEPT = 0.5;     // минимальная корреляция, чтобы принять точку
 const REACQUIRE = 0.6;  // после пропуска нужна уверенность повыше

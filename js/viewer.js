@@ -173,6 +173,10 @@ export class Viewer {
     c.addEventListener('pointermove', e => this._move(e));
     c.addEventListener('pointerup', e => this._up(e, false));
     c.addEventListener('pointercancel', e => this._up(e, true));
+    // iOS иногда не присылает pointerup (системный жест, потеря захвата) — такой палец «залипал»,
+    // и каждый следующий тап считался щипком, так что точку поставить было нельзя.
+    c.addEventListener('lostpointercapture', e => this._up(e, true));
+    document.addEventListener('visibilitychange', () => { if (document.hidden) this._reset(); });
     c.addEventListener('wheel', e => {
       e.preventDefault();
       this.zoomAt(this._pos(e), Math.exp(-e.deltaY * 0.0015));
@@ -180,8 +184,17 @@ export class Viewer {
     c.addEventListener('contextmenu', e => e.preventDefault());
   }
 
+  _reset() {
+    this.pointers.clear();
+    this.gesture = null;
+    this.loupe = null;
+    this.waitAllUp = false;
+  }
+
   _down(e) {
     e.preventDefault();
+    // Первое касание, когда других пальцев на экране нет: забываем всё, что могло остаться от прошлых жестов.
+    if (e.isPrimary && e.pointerType !== 'mouse') this._reset();
     try { this.canvas.setPointerCapture(e.pointerId); } catch { /* не критично */ }
     const s = this._pos(e);
     this.pointers.set(e.pointerId, s);

@@ -1,14 +1,14 @@
 // Мастер шагов 1 → 4 и общее состояние приложения.
-import { VideoSource } from './video.js?v=20261109154903';
-import { Viewer } from './viewer.js?v=20261109154903';
-import { initCalibration, defaultCalibration } from './calibrate.js?v=20261109154903';
-import { initTracking } from './track.js?v=20261109154903';
-import { initResults } from './results.js?v=20261109154903';
-import { initExperiment } from './experiment.js?v=20261109154903';
-import { initHistory, putTrack, getTrack } from './history.js?v=20261109154903';
-import { toWorld } from './physics.js?v=20261109154903';
-import { tableText } from './export.js?v=20261109154903';
-import { t, num, applyDom, setLang, getLang, onLang } from './i18n.js?v=20261109154903';
+import { VideoSource } from './video.js?v=20261109160300';
+import { Viewer } from './viewer.js?v=20261109160300';
+import { initCalibration, defaultCalibration } from './calibrate.js?v=20261109160300';
+import { initTracking } from './track.js?v=20261109160300';
+import { initResults } from './results.js?v=20261109160300';
+import { initExperiment } from './experiment.js?v=20261109160300';
+import { initHistory, putTrack, getTrack } from './history.js?v=20261109160300';
+import { toWorld } from './physics.js?v=20261109160300';
+import { tableText } from './export.js?v=20261109160300';
+import { t, num, applyDom, setLang, getLang, onLang } from './i18n.js?v=20261109160300';
 
 const $ = s => document.querySelector(s);
 

@@ -1,7 +1,7 @@
 // Шаг 2: FPS, начальный/конечный кадр, масштаб и система координат.
-import { hitHandles } from './viewer.js?v=20261109154903';
-import { pixelsPerMeter } from './physics.js?v=20261109154903';
-import { t, num, getLang } from './i18n.js?v=20261109154903';
+import { hitHandles } from './viewer.js?v=20261109160300';
+import { pixelsPerMeter } from './physics.js?v=20261109160300';
+import { t, num, getLang } from './i18n.js?v=20261109160300';
 
 // Число из поля ввода: принимаем и запятую, и точку.
 export function parseNum(str) {

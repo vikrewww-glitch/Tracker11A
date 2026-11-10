@@ -1,11 +1,11 @@
 // Режим «Эксперимент»: сила трения Fa в зависимости от массы по нескольким видео.
 // Каждое видео — строка { id, name, m, a }; Fa = m·|a|. Данные хранятся в localStorage,
 // поэтому не пропадают при загрузке следующего видео.
-import { polyfit } from './physics.js?v=20261109154903';
-import { drawChart } from './chart.js?v=20261109154903';
-import { fmt, sig, copyText, saveBlob, canvasToBlobSync } from './export.js?v=20261109154903';
-import { listTracks, trackAcc } from './history.js?v=20261109154903';
-import { t } from './i18n.js?v=20261109154903';
+import { polyfit } from './physics.js?v=20261109160300';
+import { drawChart } from './chart.js?v=20261109160300';
+import { fmt, sig, copyText, saveBlob, canvasToBlobSync } from './export.js?v=20261109160300';
+import { listTracks, trackAcc } from './history.js?v=20261109160300';
+import { t } from './i18n.js?v=20261109160300';
 
 const KEY = 'experiment';
 const G = 9.8;

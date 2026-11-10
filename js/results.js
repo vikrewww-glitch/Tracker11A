@@ -1,10 +1,10 @@
 // Шаг 4: графики, линия тренда, таблица и экспорт.
-import { computeSeries, polyfit } from './physics.js?v=20261109154903';
-import { drawChart, nearestPoint } from './chart.js?v=20261109154903';
-import { columnsFor, fmt, sig, tableText, copyText, saveBlob, canvasToBlobSync } from './export.js?v=20261109154903';
-import { addRow, nextName } from './experiment.js?v=20261109154903';
-import { getTrack, putTrack } from './history.js?v=20261109154903';
-import { t, getLang } from './i18n.js?v=20261109154903';
+import { computeSeries, polyfit } from './physics.js?v=20261109160300';
+import { drawChart, nearestPoint } from './chart.js?v=20261109160300';
+import { columnsFor, fmt, sig, tableText, copyText, saveBlob, canvasToBlobSync } from './export.js?v=20261109160300';
+import { addRow, nextName } from './experiment.js?v=20261109160300';
+import { getTrack, putTrack } from './history.js?v=20261109160300';
+import { t, getLang } from './i18n.js?v=20261109160300';
 
 export const QUANTITIES = [
   { key: 'x', html: 'x', name: 'x', unit: 'm', dec: 3 },
